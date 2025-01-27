@@ -170,13 +170,13 @@ class plottingTools:
         '''
         # -------------- reads info --------------
         if klabels is None and kticks is None:
-            kpoints, E, klabels, kticks = self._read_bands_vaspkit(path_read, fermi=E_vaspkit, klabels_bool=True, kticks_bool=True)
+            kpoints, E, klabels, kticks = self._read_bands_vaspkit(path_read, fermi_vaspkit=E_vaspkit, klabels_bool=True, kticks_bool=True)
         elif klabels is None and kticks is not None:
-            kpoints, E, klabels = self._read_bands_vaspkit(path_read, fermi=E_vaspkit, klabels_bool=True, kticks_bool=False)
+            kpoints, E, klabels = self._read_bands_vaspkit(path_read, fermi_vaspkit=E_vaspkit, klabels_bool=True, kticks_bool=False)
         elif klabels is not None and kticks is None:
-            kpoints, E, kticks = self._read_bands_vaspkit(path_read, fermi=E_vaspkit, klabels_bool=False, kticks_bool=True)
+            kpoints, E, kticks = self._read_bands_vaspkit(path_read, fermi_vaspkit=E_vaspkit, klabels_bool=False, kticks_bool=True)
         else:
-            kpoints, E = self._read_bands_vaspkit(path_read, fermi=E_vaspkit, klabels_bool=False, kticks_bool=False)
+            kpoints, E = self._read_bands_vaspkit(path_read, fermi_vaspkit=E_vaspkit, klabels_bool=False, kticks_bool=False)
         # ------------ ax, fig objects -----------
         if ax is None and kbreaks is None:
             fig, ax = plt.subplots()
