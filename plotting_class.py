@@ -4,7 +4,6 @@ __email__ = "carlos2248383@correo.uis.edu.co"
 __date__ = "January 06, 2025"
 
 import matplotlib.pyplot as plt
-import matplotlib.ticker as ticker
 import os
 import numpy as np
 
@@ -30,8 +29,17 @@ class plottingTools:
         - numpy 2.2.1
         - pyqt5
     '''
-    def __init__(self):
-        pass
+    def __init__(self, E_zero_color='gray', E_zero_linewidth=0.2, E_zero_linestyle='-',
+                k_color='gray', k_linewidth=0.2, k_linestyle='-',
+                main_linewidth=1.3, main_linestyle='-'):
+        self.E_zero_color=E_zero_color
+        self.E_zero_linewidth=E_zero_linewidth
+        self.E_zero_linestyle=E_zero_linestyle
+        self.k_color=k_color
+        self.k_linewidth=k_linewidth
+        self.k_linestyle=k_linestyle
+        self.main_linewidth=main_linewidth
+        self.main_linestyle=main_linestyle
 
     def _read_bands_vaspkit(self, path_read, fermi_vaspkit=False, klabels_bool=False, kticks_bool=False):
         '''
@@ -182,20 +190,20 @@ class plottingTools:
             pass
         # ------ plot klabels and kticks ------
         for ktick in kticks:
-            ax.axvline(ktick, color='gray', linewidth=0.2)
+            ax.axvline(ktick, color=self.k_color, linewidth=self.k_linewidth, linestyle=self.k_linestyle)
         ax.set_xticks(kticks)
         ax.set_xticklabels(klabels)
 
-        ax.axhline(0, color='gray', linewidth=0.2)
+        ax.axhline(0, color=self.E_zero_color, linewidth=self.E_zero_linewidth, linestyle=self.E_zero_linestyle)
         # -------------- plot bands --------------
         n = 0
         for band in E:
             band = band-E_zero
             if n==0 and label is not None:
                 n+=1
-                ax.plot(kpoints, band, c=color, linewidth=1.3, label=label)
+                ax.plot(kpoints, band, c=color, linewidth=self.main_linewidth, linestyle=self.main_linestyle, label=label)
             else:
-                ax.plot(kpoints, band, c=color, linewidth=1.3)
+                ax.plot(kpoints, band, c=color, linewidth=self.main_linewidth, linestyle=self.main_linestyle)
         # ------------- set limits --------------
         ax.set_xlim([kticks[0], kticks[-1]])
         ax.set_ylim(E_limit)
@@ -205,9 +213,11 @@ class plottingTools:
         if show:
             plt.show()
         if savefile is not None:
-            plt.savefig(savefile)
-
-        return fig, ax
+            plt.savefig(savefile, bbox_inches='tight')
+        if fig is None:
+            return ax
+        else:
+            return fig, ax
 
     def plot_path(self, x, y):
         # look script 'DFTandWannierPlotting.py'
@@ -217,6 +227,138 @@ class plottingTools:
         # look script 'plot_curvature_bands.py'
         pass
 
+    def plot_AHC_wannierberri(self,
+                           path_read,
+                           ahc_axis='all',
+                           E_limit=None,
+                           ahc_limit=None,
+                           E_zero=0,
+                           colors=None,
+                           spin='both',
+                           root='AHC',
+                           iteration=[1],
+                           fig_orientation='vertical',
+                           scale='linear',
+                           ax=None,
+                           show=False,
+                           savefile=None):
+        # ---------------- alert ----------------
+        print('------------------------------------------')
+        print('WARNING: wannierberri changes the UNITS of\nAHC depending on the version used to run\nthe calculation. Please check them.')
+        print('------------------------------------------')
+        # ----------- fig, ax objects -----------
+        if ax is None:
+            fig, ax = plt.subplots()
+        if colors is not None:
+            ax.set_prop_cycle('color', colors)  # Colores a usar
+        # --------- read data ----------
+        ahc_data = [np.loadtxt(path_read+'/'+root+f"-ahc_iter-{i:04d}.dat") for i in iteration]
+        # ----- ahc axis selection -----
+        if ahc_axis=='all':
+            ahc_label =fr'$\sigma [S/cm]$'
+            if spin=='both':
+                curv_label = [r'$\sigma_{yz}$ - down', r'$\sigma_{yz}$ - up', r'$\sigma_{xz}$ - down',
+                              r'$\sigma_{xz}$ - up', r'$\sigma_{xy}$ - down', r'$\sigma_{xy}$ - up']
+            if spin=='up':
+                curv_label = [r'$\sigma_{yz}$ - up', r'$\sigma_{xz}$ - up', r'$\sigma_{xy}$ - up']
+            if spin=='down':
+                curv_label = [r'$\sigma_{yz}$ - down', r'$\sigma_{xz}$ - down', r'$\sigma_{xy}$ - down']
+        else:    
+            ahc_label=fr'$\sigma_{ahc_axis} [S/cm]$'
+        # --------- orientation ---------
+        if (fig_orientation=='vertical'or'v'or'vertical_rigth'or'vr'):
+            ax.set_xlabel(ahc_label)
+            if fig_orientation=='vertical_rigth'or'vr':
+                ax.yaxis.set_label_position("right")
+                ax.yaxis.tick_right()
+            ax.set_ylabel(fr'$E-E_F$ [eV]')
+            ax.axhline(0, color=self.E_zero_color, linewidth=self.E_zero_linewidth, linestyle=self.E_zero_linestyle)
+            ax.set_xscale(scale)
+        elif (fig_orientation=='horizontal'or'h'):
+            ax.set_ylabel(ahc_label)
+            ax.set_xlabel(fr'$E-E_F$ [eV]')
+            ax.axvline(0, color=self.E_zero_color, linewidth=self.E_zero_linewidth, linestyle=self.E_zero_linestyle)
+            ax.set_yscale(scale)
+        # --------- plotting ---------
+        if ahc_axis=='all':
+            n=0
+            for x in range(3):
+                for i in range(len(ahc_data)):
+                    a=ahc_data[i]
+                    E=a[:,0]
+                    E-=E_zero
+                    AHC_down=a[:,x+1]
+                    AHC_up  =a[:,x+1+3]
+                    # ----- curv -----
+                    if (fig_orientation=='vertical'or'v'or'vertical_rigth'or'vr'):
+                        if spin=='both':
+                            ax.plot(AHC_down, E, label=curv_label[n], linewidth=self.main_linewidth, linestyle=self.main_linestyle)
+                            n+=1
+                            ax.plot(AHC_up, E, label=curv_label[n], linewidth=self.main_linewidth, linestyle=self.main_linestyle)
+                        elif spin=='up':
+                            ax.plot(AHC_up, E, label=curv_label[n], linewidth=self.main_linewidth, linestyle=self.main_linestyle)
+                        elif spin=='down':
+                            ax.plot(AHC_down, E, label=curv_label[n], linewidth=self.main_linewidth, linestyle=self.main_linestyle)  
+                    elif (fig_orientation=='horizontal'or'h'):
+                        if spin=='both':
+                            ax.plot(E, AHC_down, label=curv_label[n], linewidth=self.main_linewidth, linestyle=self.main_linestyle)
+                            n+=1
+                            ax.plot(E, AHC_up, label=curv_label[n], linewidth=self.main_linewidth, linestyle=self.main_linestyle)
+                        elif spin=='up':
+                            ax.plot(E, AHC_up, label=curv_label[n], linewidth=self.main_linewidth, linestyle=self.main_linestyle)
+                        elif spin=='down':
+                            ax.plot(E, AHC_down, label=curv_label[n], linewidth=self.main_linewidth, linestyle=self.main_linestyle)  
+        else:
+            for i in range(len(ahc_data)):
+                a=ahc_data[i]
+                E=a[:,0]
+                E-=E_zero
+                AHC_down=a[:,x+1]
+                AHC_up  =a[:,x+1+3]
+                # ----- curv -----
+                if (fig_orientation=='vertical'or'v'or'vertical_rigth'or'vr'):
+                    if spin=='both':
+                        ax.plot(AHC_down, E, linewidth=self.main_linewidth, linestyle=self.main_linestyle)
+                        ax.plot(AHC_up, E, linewidth=self.main_linewidth, linestyle=self.main_linestyle)
+                    elif spin=='up':
+                        ax.plot(AHC_up, E, linewidth=self.main_linewidth, linestyle=self.main_linestyle)
+                    elif spin=='down':
+                        ax.plot(AHC_down, E, linewidth=self.main_linewidth, linestyle=self.main_linestyle)  
+                elif (fig_orientation=='horizontal'or'h'):
+                    if spin=='both':
+                        ax.plot(E, AHC_down, linewidth=self.main_linewidth, linestyle=self.main_linestyle)
+                        ax.plot(E, AHC_up, linewidth=self.main_linewidth, linestyle=self.main_linestyle)
+                    elif spin=='up':
+                        ax.plot(E, AHC_up, linewidth=self.main_linewidth, linestyle=self.main_linestyle)
+                    elif spin=='down':
+                        ax.plot(E, AHC_down, linewidth=self.main_linewidth, linestyle=self.main_linestyle)  
+        # -------- legend ---------
+        ax.legend(loc='best')
+        # -------- set limits --------
+        if ahc_limit is not None and (fig_orientation=='vertical'or'v'or'vertical_rigth'or'vr'):
+            ax.set_xlim(ahc_limit)
+        elif ahc_limit is not None and (fig_orientation=='horizontal'or'h'):
+            ax.set_ylim(ahc_limit)
+        
+        if E_limit is not None and (fig_orientation=='vertical'or'v'or'vertical_rigth'or'vr'):
+            ax.set_ylim(E_limit)
+        elif E_limit is None and (fig_orientation=='vertical'or'v'or'vertical_rigth'or'vr'):
+            ax.set_ylim([min(E), max(E)])
+        elif E_limit is not None and (fig_orientation=='horizontal'or'h'):
+            ax.set_xlim(E_limit)
+        elif E_limit is None and (fig_orientation=='horizontal'or'h'):
+            ax.set_xlim([min(E), max(E)])
+
+        ax.format_coord = lambda x, y: 'x={:g}, y={:g}'.format(x, y) # To show coords.
+        if show:
+            plt.show()
+        if savefile is not None:
+            plt.savefig(savefile, bbox_inches='tight')
+        if fig is None:
+            return ax
+        else:
+            return fig, ax    
+    
     def plot_xy():
         # look script 'plot_curvature.py' or 'plot_AHC.py'
         pass
@@ -250,8 +392,7 @@ class plottingTools:
         if fermi_vaspkit:
             path_Efermi = path_read + '/FERMI_ENERGY'
             Efermi = np.loadtxt(path_Efermi, skiprows=1)
-            for i in range(len(E)):
-                E[i] += Efermi
+            E += Efermi
         
         
         return E, orbitals_labels, orbitals, total
@@ -260,7 +401,7 @@ class plottingTools:
                   path_read,
                   roots=None,
                   orbitals_tag='all',
-                  colors=['k'],
+                  colors=None,
                   E_limit=None,
                   E_zero=0,
                   E_vaspkit=False,
@@ -270,13 +411,13 @@ class plottingTools:
 
         if ax is None:
             fig, ax = plt.subplots()
-        else:
-            fig, ax = ax
+        if colors is not None:
+            ax.set_prop_cycle('color', colors)  # Colores a usar
         # --------- read data ---------
         E, orbitals_labels, orbitals, total = self._read_LDoS(path_read+roots[0], E_vaspkit)
-        ax.set_prop_cycle('color', colors)  # Colores a usar
         # ----- Sets zero energy level -----
         E -= E_zero
+        ax.axhline(0, color=self.E_zero_color, linewidth=self.E_zero_linewidth, linestyle=self.E_zero_linestyle)
         # --------- plot partial DOS ---------
         if orbitals_tag=='all':
             for orbs, label in zip(orbitals, orbitals_labels):
@@ -294,6 +435,7 @@ class plottingTools:
             ax.set_xlim(E_limit)
         else:
             ax.set_xlim([min(E), max(E)])
+        plt.legend()
         # if tag_bool and not DOS_total:
         #     ax.set_title('Right-click to hide all\nMiddle-click to show all',
         #             loc='right')  # , size='medium')
@@ -302,212 +444,12 @@ class plottingTools:
         #     leg = interactive_legend()
         #     fig.subplots_adjust(right=0.55)
         
-        if savefile is not None:
-            plt.savefig(savefile)
+        ax.format_coord = lambda x, y: 'x={:g}, y={:g}'.format(x, y) # To show coords.
         if show:
             plt.show()
-        
-        return fig, ax
-
-
-class styler:
-    '''
-    Class to control style details of the graph.    
-    '''
-    def __init__(self, fig, ax):
-        self.fig = fig
-        self.ax = ax
-        self.ax.format_coord = lambda x, y: 'x={:g}, y={:g}'.format(x, y) # To show coords.
-
-    def set_style(self, style='default'):
-        '''
-        Set the style of the graph. It uses the matplotlib styles.
-        '''
-        plt.style.use(style)
-
-    def set_size(self, figSize=[10, 8], figdpi=300):
-        '''
-        Set the dimensions of the graph.
-        '''
-        figWidht, figHeight = figSize
-        self.fig.set_size_inches(figWidht, figHeight)
-        self.fig.set_dpi(figdpi)
-        self.fig.subplots_adjust()
-
-    def set_title(self, maintitle=None, ax_title=None,
-                    mtitle_fontsize=20, ax_title_fontsize=12):
-        '''
-        Set the titles of the graph.
-        '''
-        if maintitle:
-            self.fig.suptitle(maintitle, fontsize=mtitle_fontsize)
-        if ax_title:
-            self.ax.set_title(ax_title, fontsize=ax_title_fontsize)
-
-    def set_scale(self, scale_x='linear', scale_y='linear'):
-        '''
-        Set the scale used on each of the axes.
-        '''
-        self.ax.set_yscale(scale_x)
-        self.ax.set_yscale(scale_y)
-
-    def set_labels(self, xlabel=None, ylabel=None,
-                    fontsize_xlabel=None, fontsize_ylabel=None):
-        '''
-        manage the labels of the graph.
-        '''
-        # ------------ Set the labels of the graph. ------------
-        if xlabel:
-            self.ax.set_xlabel(xlabel)
-        if ylabel:
-            self.ax.set_ylabel(ylabel)
-        # ------------ Set the size of the text. ------------
-        if fontsize_xlabel:
-            self.ax.xaxis.label.set_fontsize(fontsize_xlabel)
-        if fontsize_ylabel:
-            self.ax.yaxis.label.set_fontsize(fontsize_ylabel)
-
-    def set_ticks(self, xticks_step=None, yticks_step=None,
-                  fontsize_xticks=None, fontsize_yticks=None):
-        # ------------ Control step of the ticks. ------------
-        if xticks_step:
-            self.ax.xaxis.set_major_locator(ticker.MultipleLocator(xticks_step))
-        if yticks_step:
-            self.ax.yaxis.set_major_locator(ticker.MultipleLocator(yticks_step))
-        # ------------ set fontsize of the ticks. ------------
-        if fontsize_xticks:
-            self.ax.tick_params(axis='x', labelsize=fontsize_xticks)
-        if fontsize_yticks:
-            self.ax.tick_params(axis='y', labelsize=fontsize_yticks)
-
-    def set_lim(self, xlim=None, ylim=None):
-        '''
-        Set the limits of the graph.
-        '''
-        if xlim:
-            self.ax.set_xlim(xlim)
-        if ylim:
-            self.ax.set_ylim(ylim)
-
-    def set_frame_thickness(self, thickness=1):
-        '''
-        change te thickness of the frame of the graph.
-        '''
-        self.ax.spines['top'].set_linewidth(thickness)
-        self.ax.spines['bottom'].set_linewidth(thickness)
-        self.ax.spines['left'].set_linewidth(thickness)
-        self.ax.spines['right'].set_linewidth(thickness)
-
-    def return_fig_ax(self):
-        return self.fig, self.ax
-
-    def savefig(self, savefile, dpi=300, format='png'):
-        '''
-        Save the figure.
-        '''
-        self.fig.savefig(savefile+f'.{format}', dpi=dpi, format=format)
-
-
-    def bandstructure_style(self, savefile=None):
-        '''
-        A default configuration for band structures figures.
-        '''
-        self.set_labels(ylabel=r'$E-E_{F} [eV]$', fontsize_ylabel=18)
-        # self.set_scale()
-
-        # self.ax.axhline(0, color='gray', linewidth=0.2)
-        
-        ylim = self.ax.get_ylim()
-        self.set_ticks(yticks_step=min(abs(np.array(ylim)))/3, fontsize_yticks=14,
-                        fontsize_xticks=14)
-
-        self.set_size(figSize=[12, 8], figdpi=300)
-
-        if savefile:
-            self.savefig(savefile)
-
-    def __interactive_legend(ax=None):
-        if ax is None:
-            ax = plt.gca()
-        if ax.legend_ is None:
-            ax.legend()
-        return InteractiveLegend(ax.get_legend())
-
-
-class InteractiveLegend(object):
-    '''
-    Class taken from:
-    '''
-    def __init__(self, legend):
-        self.legend = legend
-        self.fig = legend.axes.figure
-
-        self.lookup_artist, self.lookup_handle = self._build_lookups(legend)
-        self._setup_connections()
-
-        self.update()
-
-    def _setup_connections(self):
-        for artist in self.legend.texts + self.legend.legendHandles:
-            artist.set_picker(10) # 10 points tolerance
-
-        self.fig.canvas.mpl_connect('pick_event', self.on_pick)
-        self.fig.canvas.mpl_connect('button_press_event', self.on_click)
-
-    def _build_lookups(self, legend):
-        labels = [t.get_text() for t in legend.texts]
-        handles = legend.legendHandles
-        label2handle = dict(zip(labels, handles))
-        handle2text = dict(zip(handles, legend.texts))
-
-        lookup_artist = {}
-        lookup_handle = {}
-        for artist in legend.axes.get_children():
-            if artist.get_label() in labels:
-                handle = label2handle[artist.get_label()]
-                lookup_handle[artist] = handle
-                lookup_artist[handle] = artist
-                lookup_artist[handle2text[handle]] = artist
-
-        lookup_handle.update(zip(handles, handles))
-        lookup_handle.update(zip(legend.texts, handles))
-
-        return lookup_artist, lookup_handle
-
-    def on_pick(self, event):
-        handle = event.artist
-        if handle in self.lookup_artist:
-
-            artist = self.lookup_artist[handle]
-            artist.set_visible(not artist.get_visible())
-            self.update()
-
-    def on_click(self, event):
-        if event.button == 3:
-            visible = False
-        elif event.button == 2:
-            visible = True
+        if savefile is not None:
+            plt.savefig(savefile, bbox_inches='tight')
+        if fig is None:
+            return ax
         else:
-            return
-
-        for artist in self.lookup_artist.values():
-            artist.set_visible(visible)
-        self.update()
-
-    def update(self):
-        for artist in self.lookup_artist.values():
-            handle = self.lookup_handle[artist]
-            if artist.get_visible():
-                handle.set_visible(True)
-            else:
-                handle.set_visible(False)
-        self.fig.canvas.draw()
-
-    def show(self):
-        plt.show()
-
-'''
-def legend_thickness(self, thickness=1):
-    plt.rc('legend',fontsize=20) # using a size in points
-    plt.rc('legend',fontsize='medium')
-''' 
+            return fig, ax
