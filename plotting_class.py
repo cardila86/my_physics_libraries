@@ -187,7 +187,7 @@ class plottingTools:
             # IMPORTANTE: CREO QUE ES MEJOR GRAFICAR COMO SI FUERAN DISTINTOS EJES
             # referenceTicks = ax.get_xticks()
             # kpoints, kTicks = fixKpath(referenceTicks, kpoints, kTicks)
-            pass
+            fig = None
         # ------ plot klabels and kticks ------
         for ktick in kticks:
             ax.axvline(ktick, color=self.k_color, linewidth=self.k_linewidth, linestyle=self.k_linestyle)
@@ -209,6 +209,9 @@ class plottingTools:
         ax.set_ylim(E_limit)
         ax.set_ylabel(r'$E-E_{F} [eV]$')
 
+        # ------ output -------
+        if label is not None:
+            ax.legend()
         ax.format_coord = lambda x, y: 'x={:g}, y={:g}'.format(x, y) # To show coords.
         if show:
             plt.show()
@@ -249,6 +252,8 @@ class plottingTools:
         # ----------- fig, ax objects -----------
         if ax is None:
             fig, ax = plt.subplots()
+        else:
+            fig = None
         if colors is not None:
             ax.set_prop_cycle('color', colors)  # Colores a usar
         # --------- read data ----------
@@ -411,6 +416,8 @@ class plottingTools:
 
         if ax is None:
             fig, ax = plt.subplots()
+        else:
+            fig = None
         if colors is not None:
             ax.set_prop_cycle('color', colors)  # Colores a usar
         # --------- read data ---------
@@ -435,7 +442,8 @@ class plottingTools:
             ax.set_xlim(E_limit)
         else:
             ax.set_xlim([min(E), max(E)])
-        plt.legend()
+        
+        ax.legend()
         # if tag_bool and not DOS_total:
         #     ax.set_title('Right-click to hide all\nMiddle-click to show all',
         #             loc='right')  # , size='medium')
