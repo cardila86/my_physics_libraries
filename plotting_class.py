@@ -29,7 +29,7 @@ class plottingTools:
         - numpy 2.2.1
         - pyqt5
     '''
-    def __init__(self, E_zero_color='gray', E_zero_linewidth=0.2, E_zero_linestyle='-',
+    def __init__(self, E_zero_color='gray', E_zero_linewidth=0.2, E_zero_linestyle='--',
                 k_color='gray', k_linewidth=0.2, k_linestyle='-',
                 main_linewidth=1.3, main_linestyle='-'):
         self.E_zero_color=E_zero_color
@@ -184,10 +184,10 @@ class plottingTools:
             num_ax = len(kbreaks)+1
             fig, ax = plt.subplots(num_ax)
         else:
+            fig = None
             # IMPORTANTE: CREO QUE ES MEJOR GRAFICAR COMO SI FUERAN DISTINTOS EJES
             # referenceTicks = ax.get_xticks()
             # kpoints, kTicks = fixKpath(referenceTicks, kpoints, kTicks)
-            fig = None
         # ------ plot klabels and kticks ------
         for ktick in kticks:
             ax.axvline(ktick, color=self.k_color, linewidth=self.k_linewidth, linestyle=self.k_linestyle)
@@ -442,7 +442,7 @@ class plottingTools:
             ax.set_xlim(E_limit)
         else:
             ax.set_xlim([min(E), max(E)])
-        
+
         ax.legend()
         # if tag_bool and not DOS_total:
         #     ax.set_title('Right-click to hide all\nMiddle-click to show all',
