@@ -128,6 +128,7 @@ class plottingTools:
                            kbreaks=None,
                            label=None,
                            color='k',
+                           nbands=None,
                            ax=None,
                            show=False,
                            savefile=None):
@@ -197,8 +198,22 @@ class plottingTools:
         ax.axhline(0, color=self.E_zero_color, linewidth=self.E_zero_linewidth, linestyle=self.E_zero_linestyle)
         # -------------- plot bands --------------
         n = 0
-        for band in E:
-            band = band-E_zero
+        if nbands is None:
+            bands=E
+        elif type(nbands) is int or type(nbands) is float:
+            nbands = int(nbands)
+            bands=E[0:nbands]
+        elif type(nbands) is list:
+            bands=[]
+            for i in nbands:
+                bands.append(E[int(i)])
+        else:
+            print('ERROR: nbands must be an integer, a float or a list of integers.\n'+
+                  'a '+str(type(nbands))+' type was recieved. Please check inputs.') 
+            exit()
+
+        for band in bands:
+            band-=E_zero
             if n==0 and label is not None:
                 n+=1
                 ax.plot(kpoints, band, c=color, linewidth=self.main_linewidth, linestyle=self.main_linestyle, label=label)
@@ -226,10 +241,39 @@ class plottingTools:
         # look script 'DFTandWannierPlotting.py'
         pass
 
-    def plot_pathIntensity(self):
-        # look script 'plot_curvature_bands.py'
-        pass
+    def plot_pathIntensity(self,
+                           path_read,
+                           bands,
+                           intensity,
+                           E_limit=[-1, 1],
+                           E_zero=0,
+                           E_vaspkit=False,
+                           klabels= None,
+                           kticks=None,
+                           kbreaks=None,
+                           label=None,
+                           color='k',
+                           ax=None,
+                           show=False,
+                           savefile=None
+                           ):
+        # ------- some parameters -------
+        kwidth = 0.2 
+        # ======== read data ========
+        bands = np.loadtxt(open(pathData + "/bandsWannierBerri.dat","r"))
+        curv = np.loadtxt(open(pathData + '/curvatureWannierBerri.dat',"r"))
+        kticksAndLabel = np.loadtxt(open(pathData + '/kticks.dat',"r"), str)
 
+        kpoints = np.transpose(bands)[0]
+        bands = np.transpose(bands)[1:]
+        curv = np.transpose(curv)[1:]
+        kticks = np.array(([float(i) for i in np.transpose(kticksAndLabel)[0]]))
+        if klabels==[]:
+            klabels = np.transpose(kticksAndLabel)[1]
+        # ====== organize data ======
+    
+        path_read,
+                           
     def plot_AHC_wannierberri(self,
                            path_read,
                            ahc_axis='all',
