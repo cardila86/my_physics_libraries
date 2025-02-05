@@ -237,6 +237,38 @@ class plottingTools:
         else:
             return fig, ax
 
+    def plot_bands_vasp_orbs_atoms(self,   
+                                   path_read,
+                                   atoms=None,
+                                   orbitals=None,
+                                   spins=None,
+                                   E_limit=[-1, 1],
+                                   E_zero=0,
+                                   klabels= None,
+                                   kticks=None,
+                                   cmap='jet',
+                                   ax=None,
+                                   show=False,
+                                   savefile=None):
+        '''
+        Uses pyprocar 6.3.2
+        '''
+        
+        import pyprocar
+        
+
+        bands = pyprocar.bandsplot(
+                code='vasp', dirname=path_read, mode='parametric',
+                fermi=E_zero, fermi_color = 'black', fermi_linestyle='dashed', fermi_linewidth=0.5,
+                elimit=E_limit, cmap=cmap, linestyle=['solid', 'solid'], linewidth=[1, 1],
+                kticks=kticks, knames=klabels,
+                atoms=atoms, orbitals=orbitals, spins=spins,
+                show=show, savefig=savefile, dpi=300, ax=ax)
+        
+        fig, ax = bands[0:2]
+        return fig, ax    
+
+
     def plot_path(self, x, y):
         # look script 'DFTandWannierPlotting.py'
         pass
