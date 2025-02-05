@@ -29,7 +29,7 @@ class plottingTools:
         - numpy 2.2.1
         - pyqt5
     '''
-    def __init__(self, E_zero_color='gray', E_zero_linewidth=0.2, E_zero_linestyle='-',
+    def __init__(self, E_zero_color='gray', E_zero_linewidth=0.2, E_zero_linestyle='--',
                 k_color='gray', k_linewidth=0.2, k_linestyle='-',
                 main_linewidth=1.3, main_linestyle='-'):
         self.E_zero_color=E_zero_color
@@ -128,6 +128,7 @@ class plottingTools:
                            kbreaks=None,
                            label=None,
                            color='k',
+                           nbands=None,
                            ax=None,
                            show=False,
                            savefile=None):
@@ -184,10 +185,10 @@ class plottingTools:
             num_ax = len(kbreaks)+1
             fig, ax = plt.subplots(num_ax)
         else:
+            fig = None
             # IMPORTANTE: CREO QUE ES MEJOR GRAFICAR COMO SI FUERAN DISTINTOS EJES
             # referenceTicks = ax.get_xticks()
             # kpoints, kTicks = fixKpath(referenceTicks, kpoints, kTicks)
-            pass
         # ------ plot klabels and kticks ------
         for ktick in kticks:
             ax.axvline(ktick, color=self.k_color, linewidth=self.k_linewidth, linestyle=self.k_linestyle)
@@ -197,8 +198,22 @@ class plottingTools:
         ax.axhline(0, color=self.E_zero_color, linewidth=self.E_zero_linewidth, linestyle=self.E_zero_linestyle)
         # -------------- plot bands --------------
         n = 0
-        for band in E:
-            band = band-E_zero
+        if nbands is None:
+            bands=E
+        elif type(nbands) is int or type(nbands) is float:
+            nbands = int(nbands)
+            bands=E[0:nbands]
+        elif type(nbands) is list:
+            bands=[]
+            for i in nbands:
+                bands.append(E[int(i)])
+        else:
+            print('ERROR: nbands must be an integer, a float or a list of integers.\n'+
+                  'a '+str(type(nbands))+' type was recieved. Please check inputs.') 
+            exit()
+
+        for band in bands:
+            band-=E_zero
             if n==0 and label is not None:
                 n+=1
                 ax.plot(kpoints, band, c=color, linewidth=self.main_linewidth, linestyle=self.main_linestyle, label=label)
@@ -209,6 +224,9 @@ class plottingTools:
         ax.set_ylim(E_limit)
         ax.set_ylabel(r'$E-E_{F} [eV]$')
 
+        # ------ output -------
+        if label is not None:
+            ax.legend()
         ax.format_coord = lambda x, y: 'x={:g}, y={:g}'.format(x, y) # To show coords.
         if show:
             plt.show()
@@ -219,14 +237,75 @@ class plottingTools:
         else:
             return fig, ax
 
+    def plot_bands_vasp_orbs_atoms(self,   
+                                   path_read,
+                                   atoms=None,
+                                   orbitals=None,
+                                   spins=None,
+                                   E_limit=[-1, 1],
+                                   E_zero=0,
+                                   klabels= None,
+                                   kticks=None,
+                                   cmap='jet',
+                                   ax=None,
+                                   show=False,
+                                   savefile=None):
+        '''
+        Uses pyprocar 6.3.2
+        '''
+        
+        import pyprocar
+        
+
+        bands = pyprocar.bandsplot(
+                code='vasp', dirname=path_read, mode='parametric',
+                fermi=E_zero, fermi_color = 'black', fermi_linestyle='dashed', fermi_linewidth=0.5,
+                elimit=E_limit, cmap=cmap, linestyle=['solid', 'solid'], linewidth=[1, 1],
+                kticks=kticks, knames=klabels,
+                atoms=atoms, orbitals=orbitals, spins=spins,
+                show=show, savefig=savefile, dpi=300, ax=ax)
+        
+        fig, ax = bands[0:2]
+        return fig, ax    
+
+
     def plot_path(self, x, y):
         # look script 'DFTandWannierPlotting.py'
         pass
 
-    def plot_pathIntensity(self):
-        # look script 'plot_curvature_bands.py'
-        pass
+    def plot_pathIntensity(self,
+                           path_read,
+                           bands,
+                           intensity,
+                           E_limit=[-1, 1],
+                           E_zero=0,
+                           E_vaspkit=False,
+                           klabels= None,
+                           kticks=None,
+                           kbreaks=None,
+                           label=None,
+                           color='k',
+                           ax=None,
+                           show=False,
+                           savefile=None
+                           ):
+        # ------- some parameters -------
+        kwidth = 0.2 
+        # ======== read data ========
+        bands = np.loadtxt(open(pathData + "/bandsWannierBerri.dat","r"))
+        curv = np.loadtxt(open(pathData + '/curvatureWannierBerri.dat',"r"))
+        kticksAndLabel = np.loadtxt(open(pathData + '/kticks.dat',"r"), str)
 
+        kpoints = np.transpose(bands)[0]
+        bands = np.transpose(bands)[1:]
+        curv = np.transpose(curv)[1:]
+        kticks = np.array(([float(i) for i in np.transpose(kticksAndLabel)[0]]))
+        if klabels==[]:
+            klabels = np.transpose(kticksAndLabel)[1]
+        # ====== organize data ======
+    
+        path_read,
+                           
     def plot_AHC_wannierberri(self,
                            path_read,
                            ahc_axis='all',
@@ -249,6 +328,8 @@ class plottingTools:
         # ----------- fig, ax objects -----------
         if ax is None:
             fig, ax = plt.subplots()
+        else:
+            fig = None
         if colors is not None:
             ax.set_prop_cycle('color', colors)  # Colores a usar
         # --------- read data ----------
@@ -411,6 +492,8 @@ class plottingTools:
 
         if ax is None:
             fig, ax = plt.subplots()
+        else:
+            fig = None
         if colors is not None:
             ax.set_prop_cycle('color', colors)  # Colores a usar
         # --------- read data ---------
@@ -435,7 +518,8 @@ class plottingTools:
             ax.set_xlim(E_limit)
         else:
             ax.set_xlim([min(E), max(E)])
-        plt.legend()
+
+        ax.legend()
         # if tag_bool and not DOS_total:
         #     ax.set_title('Right-click to hide all\nMiddle-click to show all',
         #             loc='right')  # , size='medium')

@@ -1,6 +1,4 @@
 **/__pycache__
 **/testing
-**/testing_plot_bands.py
-**/testing_plot_PDOS.py
-**/testing_plot_AHC.py
 **/venv
+**/examples/plotting_class.py
