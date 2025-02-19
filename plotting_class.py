@@ -168,6 +168,7 @@ class plottingTools:
                                    atoms=None,
                                    orbitals=None,
                                    spins=None,
+                                   mode='plain',
                                    E_limit=[-1, 1],
                                    E_zero=0,
                                    klabels= None,
@@ -184,7 +185,7 @@ class plottingTools:
         
 
         bands = pyprocar.bandsplot(
-                code='vasp', dirname=path_read, mode='parametric',
+                code='vasp', dirname=path_read, mode=mode,
                 fermi=E_zero, fermi_color = 'black', fermi_linestyle='dashed', fermi_linewidth=0.5,
                 elimit=E_limit, cmap=cmap, linestyle=['solid', 'solid'], linewidth=[1, 1],
                 kticks=kticks, knames=klabels,

@@ -121,13 +121,13 @@ class styler:
         '''
         A default configuration for band structures figures.
         '''
-        self.set_labels(ylabel=r'$E-E_{F} [eV]$', fontsize_ylabel=18)
+        self.set_labels(ylabel=r'$E-E_{F} [eV]$', xlabel='', fontsize_ylabel=18)
         # self.set_scale()
 
         # self.ax.axhline(0, color='gray', linewidth=0.2)
         
         ylim = self.ax.get_ylim()
-        self.set_ticks(yticks_step=min(abs(np.array(ylim)))/3, fontsize_yticks=14,
+        self.set_ticks(yticks_step=min(abs(np.array(ylim)))//3, fontsize_yticks=14,
                         fontsize_xticks=14)
 
         self.set_size(figSize=[12, 8], figdpi=300)
