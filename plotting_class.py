@@ -4,6 +4,7 @@ __email__ = "carlos2248383@correo.uis.edu.co"
 __date__ = "January 06, 2025"
 
 import matplotlib.pyplot as plt
+from matplotlib.collections import LineCollection
 import os
 import numpy as np
 
@@ -121,23 +122,40 @@ class plottingTools:
             None.
         '''
         # ------ single band structure file for both spin ------
-        path_band =  path_read + '/' + root
+        path_band = path_read + '/REFORMATTED_BAND.dat'
         if os.path.isfile(path_band):
-            data = np.loadtxt(path_band, skiprows=3)
+            data = np.loadtxt(path_band, skiprows=1)
             data = data.transpose()
             kpoints = data[0]
-            bands = data[1]
+            E = data[1:]
+        # ------- band structure files splitted by spin --------
+        else:
+            path_band_dw = path_read + '/REFORMATTED_BAND_DW.dat'
+            path_band_up = path_read + '/REFORMATTED_BAND_UP.dat'
+            data = np.loadtxt(path_band_dw, skiprows=1)
+            data = data.transpose()
+            kpoints = data[0]
+            E = data[1:]
+            data = np.loadtxt(path_band_up, skiprows=1)
+            data = data.transpose()
+            E = np.append(E, data[1:], axis=0)        
+        # ------ single band structure file for both spin ------
+        path_projection =  path_read + '/' + root
+        if os.path.isfile(path_projection):
+            data = np.loadtxt(path_projection, skiprows=3)
+            data = data.transpose()
+            kpoints_check = data[0]
             orbs_projection = data[2:]
-            for i in range(len(kpoints)-1):
-                if kpoints[i+1]<kpoints[i]:
+            for i in range(len(kpoints_check)-1):
+                if kpoints_check[i+1]<kpoints_check[i]:
                     npoints = i
-                    kpoints = kpoints[:npoints]
                     break
-            nbands = len(bands)//npoints
-            E = [bands[npoints*i:npoints*(i+1)] for i in range(nbands)]
+            # ======= check that projection and bands match =======
+            assert npoints == len(kpoints), 'ERROR: The number of kpoints in the bands and the projection file do not match.'
+            # =====================================================
             orbs_projection_list = []
             for i in orbs:
-                l = [orbs_projection[i][npoints*j:npoints*(j+1)] for j in range(nbands)]
+                l = [orbs_projection[i][npoints*j:npoints*(j+1)] for j in range(len(E))]
                 orbs_projection_list.append(l)
         # ------- band structure files splitted by spin --------
         else:
@@ -332,8 +350,6 @@ class plottingTools:
                   'a '+str(type(nbands))+' type was recieved. Please check inputs.') 
             exit()
         n = 0
-        print(bands[6])
-        exit()
         for band in bands:
             band-=E_zero
             if n==0 and label is not None:
@@ -371,7 +387,7 @@ class plottingTools:
                            kticks=None,
                            kbreaks=None,
                            label=None,
-                           colors=[],
+                           colors=[[1, 0, 0], [0, 1, 0], [0, 0, 1]],
                            nbands=None,
                            ax=None,
                            show=False,
@@ -407,16 +423,7 @@ class plottingTools:
             kpoints, E, orbs_projection_list, kticks = self._read_bands_vaspkit_projected(path_read, root, orbs_read, fermi_vaspkit=E_vaspkit, klabels_bool=False, kticks_bool=True)
         else:
             kpoints, E, orbs_projection_list = self._read_bands_vaspkit_projected(path_read, root, orbs_read, fermi_vaspkit=E_vaspkit, klabels_bool=False, kticks_bool=False)
-        
-        if klabels is None and kticks is None:
-            kpoints, E, klabels, kticks = self._read_bands_vaspkit(path_read, fermi_vaspkit=E_vaspkit, klabels_bool=True, kticks_bool=True)
-        elif klabels is None and kticks is not None:
-            kpoints, E, klabels = self._read_bands_vaspkit(path_read, fermi_vaspkit=E_vaspkit, klabels_bool=True, kticks_bool=False)
-        elif klabels is not None and kticks is None:
-            kpoints, E, kticks = self._read_bands_vaspkit(path_read, fermi_vaspkit=E_vaspkit, klabels_bool=False, kticks_bool=True)
-        else:
-            kpoints, E = self._read_bands_vaspkit(path_read, fermi_vaspkit=E_vaspkit, klabels_bool=False, kticks_bool=False)
-        
+
         # ------------ ax, fig objects -----------
         if ax is None and kbreaks is None:
             fig, ax = plt.subplots()
@@ -435,7 +442,7 @@ class plottingTools:
         ax.set_xticklabels(klabels)
 
         ax.axhline(0, color=self.E_zero_color, linewidth=self.E_zero_linewidth, linestyle=self.E_zero_linestyle)
-        # ----------- Orded Projection -----------
+        # ------- Order Projection and asign colors -------
         if orbs_grouped:
             orbs_grouped_list = []
             n_projection = 0
@@ -462,8 +469,24 @@ class plottingTools:
                     orbs_projection_list[i][j] = 1-orbs_projection_list[i][j]
                 orbs_colors.append(orbs_projection_list[i])
             else:
-                orbs_colors.append([np.zeros(len(orbs_colors[0][0])) for _ in range(len(orbs_colors[0]))])
-        # -------------- plot bands --------------
+                orbs_colors.append([np.ones(len(orbs_colors[0][0])) for _ in range(len(orbs_colors[0]))])
+        # ----- change to arbitrary colors -----
+        if colors!=[]:
+            # change rgb into 0-1 scale
+            for i in range(len(colors)):
+                for j in range(len(colors[i])):
+                    colors[i][j] = colors[i][j]/255
+            # check that 3 colors are given
+            assert len(colors)==3, 'ERROR: colors must be a list of 3 lists of 3 integers.'
+            # assign colors
+            new_orbs_colors = [[] for _ in range(len(orbs_colors[0]))]
+            for i in range(len(orbs_colors[0])):
+                for j in range(len(colors[0])):
+                    new_orbs_colors[i].append(np.array(colors[0][j])*orbs_colors[0][i]+np.array(colors[1][j])*orbs_colors[1][i]+np.array(colors[2][j])*orbs_colors[2][i])
+                    new_orbs_colors[i][j] = np.clip(new_orbs_colors[i][j], 0, 1)
+            orbs_colors = new_orbs_colors
+        print(np.shape(orbs_colors))
+        # -------------- isolates bands --------------
         if nbands is None:
             bands=E
         elif type(nbands) is int or type(nbands) is float:
@@ -482,21 +505,31 @@ class plottingTools:
                 for j in nbands:
                     new_colors.append(orbs_colors[i][int(j)])
             orbs_colors = new_colors
-
         else:
             print('ERROR: nbands must be an integer, a float or a list of integers.\n'+
                   'a '+str(type(nbands))+' type was recieved. Please check inputs.') 
             exit()
-        n = 0
-        for i in range(len(bands)):
-            band=bands[i]-E_zero
-            color_projection = [orbs_colors[0][i], orbs_colors[1][i], orbs_colors[2][i]]
-            color_projection = np.array(color_projection).transpose()
-            if n==0 and label is not None:
-                n+=1
-                ax.scatter(kpoints, band, s=1, c=color_projection, linewidth=self.main_linewidth, linestyle=self.main_linestyle, label=label)
-            else:
-                ax.scatter(kpoints, band, s=1, c=color_projection,  linewidth=self.main_linewidth, linestyle=self.main_linestyle)
+        # -------------- plot bands --------------
+        for band, orbs_color in zip(bands, orbs_colors):
+            band-=E_zero
+            color_projection = np.column_stack([orbs_color[0], orbs_color[1], orbs_color[2]]) 
+            # ---- create segments ----
+            points = np.array([kpoints, band]).transpose().reshape(-1, 1, 2)
+            segments = np.concatenate([points[:-1], points[1:]], axis=1)
+            lc = LineCollection(segments, colors=color_projection, linewidths=self.main_linewidth)
+ 
+            ax.add_collection(lc)
+
+        # n = 0
+        # for i in range(len(bands)):
+        #     band=bands[i]-E_zero
+        #     color_projection = [orbs_colors[0][i], orbs_colors[1][i], orbs_colors[2][i]]
+        #     color_projection = np.array(color_projection).transpose()
+        #     if n==0 and label is not None:
+        #         n+=1
+        #         ax.scatter(kpoints, band, s=1, c=color_projection, linewidth=self.main_linewidth, linestyle=self.main_linestyle, label=label)
+        #     else:
+        #         ax.scatter(kpoints, band, s=1, c=color_projection,  linewidth=self.main_linewidth, linestyle=self.main_linestyle)
 
         # ------------- set limits --------------
         ax.set_xlim([kticks[0], kticks[-1]])
