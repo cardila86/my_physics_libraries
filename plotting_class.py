@@ -3,6 +3,9 @@ __maintainer__ = "Carlos Ardila Gutierrez"
 __email__ = "carlos2248383@correo.uis.edu.co"
 __date__ = "January 06, 2025"
 
+import matplotlib
+# matplotlib.use('qtagg')
+
 import matplotlib.pyplot as plt
 from matplotlib.collections import LineCollection
 import os
@@ -147,8 +150,6 @@ class plottingTools:
             data = data.transpose()
             kpoints_check = data[0]
             bands = data[1]
-            print(len(bands), len(E))
-            exit()
             orbs_projection = data[2:]
             for i in range(len(kpoints_check)-1):
                 if kpoints_check[i+1]<kpoints_check[i]:
@@ -211,36 +212,46 @@ class plottingTools:
         # ------ single band structure file for both spin ------
         path_projection =  path_read + '/' + root
 
+        # ----------- separate bands and projections -----------
+        nlines, nkpoints, nbands = 0, 0, 0
+        with open(path_projection) as dataFile:
+            for data in dataFile:
+                if len(data.split())==3:
+
+                    break
+                elif len(data.split())==0:
+                    if nkpoints==0:
+                        nkpoints = nlines
+                    nbands+=1
+                    nlines+=1
+                else:
+                    nlines+=1
         kpoints, bands, bands_projection = [], [], []
-        n, m = 0, -1
         if os.path.isfile(path_projection):
-            with open(path_projection) as dataFile:
-                for data in dataFile:
-                    # When there are 2 columns, its the simple band structure
-                    # When there are 3 columns, its the projected bands
-                    # Each band is separated by a blank line (len(data.split())==0)
-                    # simple bands - no PBANDS
-                    if len(data.split())==2:
-                        if m < n:
-                            m = n
-                            bands.append([])
-                        if n == 0:
-                            kpoints.append(data.split()[0])
-                        bands[-1].append(data.split()[1])
-                    elif len(data.split())==3:
-                        if m < n:
-                            m = n
-                            bands_projection.append([])
-                        bands_projection[-1].append([data.split()[1], data.split()[2]])
-                    elif len(data.split())==0:
-                        n+=1        
+            # -------- bands witoout projections --------
+            # data_bands = np.loadtxt(path_projection, usecols=(0,1))
+            # data_bands = data_bands.transpose()
+            # kpoints = data_bands[0]
+            # bands = data_bands[1]
+            # kpoints = kpoints[:nkpoints]*2*np.pi
+            # bands = [bands[nkpoints*j:nkpoints*(j+1)] for j in range(len(bands)//nkpoints)]
+    
+            data_projection = np.loadtxt(path_projection, usecols=(0,1,2), skiprows=nlines)
+            data_projection = data_projection.transpose()
+            kpoints = data_projection[0][:nkpoints]*2*np.pi
+            bands = data_projection[1]
+            projection = data_projection[2]
+            bands = [bands[nkpoints*j:nkpoints*(j+1)] for j in range(nbands)]
+            n = 0
+            for i in range((len(projection)//nkpoints)//nbands):
+                bands_projection.append([projection[nkpoints*(j+nbands*i):nkpoints*(j+1+nbands*i)] for j in range(nbands)])
             # ======= check that projection and bands match =======
             for i in range(len(bands)):
-                assert len(kpoints) == len(bands[i]), 'ERROR: The number of kpoints in the bands and the projection file do not match. (1)'
+                assert len(kpoints) == len(bands[i]), f'ERROR: The number of kpoints and the lenght of each band do not match. (1).'
             for i in range(len(bands_projection)):
-                assert len(kpoints) == len(bands_projection[i]), 'ERROR: The number of kpoints in the bands and the projection file do not match. (2)'
+                for j in range(len(bands_projection[i])):
+                    assert len(kpoints) == len(bands_projection[i][j]), 'ERROR: The number of kpoints in the bands and the projection file do not match. (2)'
             # =====================================================
-        # ------- band structure files splitted by spin --------
         else:
             print(f'ERROR: path \'{path_projection}\' not found')
         # ------- kticks & klabels --------
@@ -950,7 +961,6 @@ class plottingTools:
     def plot_bands_projected_orbs_p4vasp(self,
                            path_read,
                            root='PBAND_Atom1.dat',
-                           orbs=[0, 1, 2],
                            E_limit=[-1, 1],
                            E_zero=0,
                            E_vaspkit=False,
@@ -964,15 +974,74 @@ class plottingTools:
                            show=False,
                            savefile=None):
         if klabels is None and kticks is None:
-            kpoints, E, orbs_projection_list, klabels, kticks = self._read_bands_p4vasp_projected(path_read, root, klabels_bool=True, kticks_bool=True)
+            kpoints, bands, bands_projections, klabel, kticks = self._read_bands_p4vasp_projected(path_read, root, klabels_bool=True, kticks_bool=True)
         elif klabels is None and kticks is not None:
-            kpoints, E, orbs_projection_list, klabels = self._read_bands_p4vasp_projected(path_read, root, klabels_bool=True, kticks_bool=False)
+            kpoints, bands, bands_projections, klabel = self._read_bands_p4vasp_projected(path_read, root, klabels_bool=True, kticks_bool=False)
         elif klabels is not None and kticks is None:
-            kpoints, E, orbs_projection_list, kticks = self._read_bands_p4vasp_projected(path_read, root, klabels_bool=False, kticks_bool=True)
+            kpoints, bands, bands_projections, kticks = self._read_bands_p4vasp_projected(path_read, root, klabels_bool=False, kticks_bool=True)
         else:
-            kpoints, E, orbs_projection_list = self._read_bands_p4vasp_projected(path_read, root, klabels_bool=False, kticks_bool=False)
+            kpoints, bands, bands_projections = self._read_bands_p4vasp_projected(path_read, root, klabels_bool=False, kticks_bool=False)
+        # ------------ ax, fig objects -----------
+        if ax is None and kbreaks is None:
+            fig, ax = plt.subplots()
+        elif ax is None and kbreaks is not None:
+            num_ax = len(kbreaks)+1
+            fig, ax = plt.subplots(num_ax)
+        else:
+            fig = None
+            # IMPORTANTE: CREO QUE ES MEJOR GRAFICAR COMO SI FUERAN DISTINTOS EJES
+            # referenceTicks = ax.get_xticks()
+            # kpoints, kTicks = fixKpath(referenceTicks, kpoints, kTicks)
         
+        # for i in range(len(bands)):
+        #     plt.plot(kpoints, bands[i])
+        # ------ plot klabels and kticks ------
+        for ktick in kticks:
+            ax.axvline(ktick, color=self.k_color, linewidth=self.k_linewidth, linestyle=self.k_linestyle)
+        ax.set_xticks(kticks)
+        ax.set_xticklabels(klabels)
 
+        ax.axhline(0, color=self.E_zero_color, linewidth=self.E_zero_linewidth, linestyle=self.E_zero_linestyle)
+        # ------- Order Projection and asign colors -------
+        # --- define colors ---
+        if colors!=[]:
+            # pasa de una lista tipo RGB a una lista tipo 0-1
+            for i in range(len(colors)):
+                for j in range(len(colors[i])):
+                    colors[i][j] = colors[i][j]/255
+                colors[i] = np.array(colors[i])
+        else:
+            colors = [np.array([1, 0, 0]), np.array([0, 1, 0]), np.array([0, 0, 1])]
+
+        # ---- checks that there are 3 list of projections ----
+        while len(bands_projections)<3:
+            bands_projections.append(np.zeros(np.shape(bands_projections[0])))
+        # la proyeccion es de la forma 3 proyecciones x nbandas x nkpoints. Para pasar
+        # esto a color, la lista pasa a ser nbandas x 3 colores x nkpoints
+        colors_projections = np.empty((len(bands), 3, len(kpoints))) 
+        # i es la banda, j es la componente del color, k es el punto k...
+        l = []
+        for i in range(len(bands)):
+            for j in range(3):
+                for k in range(len(kpoints)):
+                    # promedio ponderado
+                    colors_projections[i][j][k] = 1 - (bands_projections[0][i][k]*colors[0][j] + bands_projections[1][i][k]*colors[1][j] + bands_projections[2][i][k]*colors[2][j])/(colors[0][j]+colors[1][j]+colors[2][j])
+        # ----------- plot projected bands ------------
+        
+        for band, colors in zip(bands, colors_projections):
+            # ------- asign colors -------
+            band-=E_zero
+            color_projection = np.column_stack([colors[0], colors[1], colors[2]])
+            # ---- create segments ----
+            points = np.array([kpoints, band]).transpose().reshape(-1, 1, 2)
+            segments = np.concatenate([points[:-1], points[1:]], axis=1)
+            lc = LineCollection(segments, colors=color_projection, linewidths=self.main_linewidth)
+ 
+            ax.add_collection(lc)
+
+        ax.set_yticklabels('')
+        ax.set_yticks([0])
+        # plt.show()
 
     def plot_pathIntensity(self,
                            path_read,
