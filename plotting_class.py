@@ -1066,7 +1066,12 @@ class plottingTools:
             for j in range(3):
                 for k in range(len(kpoints)):
                     # promedio ponderado
-                    colors_projections[i][j][k] = 1 - (bands_projections[0][i][k]*colors[0][j] + bands_projections[1][i][k]*colors[1][j] + bands_projections[2][i][k]*colors[2][j])/(colors[0][j]+colors[1][j]+colors[2][j])
+                    colors_projections[i][j][k] = 1 - (bands_projections[0][i][k]*(1-colors[0][j]) + bands_projections[1][i][k]*(1-colors[1][j]) + bands_projections[2][i][k]*(1-colors[2][j])) #/(colors[0][j]+colors[1][j]+colors[2][j])
+                    # Checks for saturated values
+                    if colors_projections[i][j][k]>1:
+                        colors_projections[i][j][k] = 1
+                    elif colors_projections[i][j][k]<0:
+                        colors_projections[i][j][k] = 0                    
         # ----------- plot projected bands ------------
         for band, colors in zip(bands, colors_projections):
             # ------- asign colors -------
