@@ -7,7 +7,7 @@ t0 = time.time()
 
 plotter = plottingTools()
 
-fig, ax = plotter.plot_bands_vasp_orbs_atoms(path_read='/home/carlos/Documents/scriptsCalculations/projects/RPt2B/NdPt2B/FM001/k131311/2-bands-SOC',
+fig, ax = plotter.plot_bands_pyprocar(path_read='/home/carlos/Documents/scriptsCalculations/projects/RPt2B/NdPt2B/FM001/k131311/2-bands-SOC',
                                             atoms=None,
                                             orbitals=None,
                                             spins=None,
