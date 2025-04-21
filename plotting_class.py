@@ -436,6 +436,11 @@ class plottingTools:
                            ax=None,
                            show=False,
                            savefile=None):
+        # ------------ ax, fig objects -----------
+        if ax is None:
+            fig, ax = plt.subplots()
+        else:
+            fig = None
         # -------------- reads info --------------
         if program=='vaspkit':
             if klabels is None and kticks is None:
@@ -448,7 +453,6 @@ class plottingTools:
                 kpoints, E = self._read_bands_vaspkit(path_read, fermi_vaspkit=E_vaspkit, klabels_bool=False, kticks_bool=False)
         elif program=='wannier90':
             path_read=path_read+'/'+root
-
             if klabels is None and kticks is None:
                 kpoints, E, klabels, kticks = self._read_bands_wannier(path_read, klabels_bool=True, kticks_bool=True)
             elif klabels is None and kticks is not None:
@@ -457,17 +461,6 @@ class plottingTools:
                 kpoints, E, kticks = self._read_bands_wannier(path_read, klabels_bool=False, kticks_bool=True)
             else:
                 kpoints, E = self._read_bands_wannier(path_read, klabels_bool=False, kticks_bool=False)
-        # ------------ ax, fig objects -----------
-        if ax is None and kbreaks is None:
-            fig, ax = plt.subplots()
-        elif ax is None and kbreaks is not None:
-            num_ax = len(kbreaks)+1
-            fig, ax = plt.subplots(num_ax)
-        else:
-            fig = None
-            # IMPORTANTE: CREO QUE ES MEJOR GRAFICAR COMO SI FUERAN DISTINTOS EJES
-            # referenceTicks = ax.get_xticks()
-            # kpoints, kTicks = fixKpath(referenceTicks, kpoints, kTicks)
         # ------ plot klabels and kticks ------
         for ktick in kticks:
             ax.axvline(ktick, color=self.k_color, linewidth=self.k_linewidth, linestyle=self.k_linestyle)
@@ -475,6 +468,13 @@ class plottingTools:
         ax.set_xticklabels(klabels)
 
         ax.axhline(0, color=self.E_zero_color, linewidth=self.E_zero_linewidth, linestyle=self.E_zero_linestyle)
+        # ------------ discontinuities -----------
+        if kbreaks is not None:
+            for i in kbreaks:
+                for j in range(len(kpoints)):
+                    if j!=0 and abs(kpoints[j]-kticks[i])<abs(kpoints[j]-kpoints[j-1])/2: # Mira que este cerca a un ktick
+                        for k in range(len(E)):
+                            E[k][j] = np.nan
         # -------------- plot bands --------------
         if nbands is None:
             bands=E
@@ -499,7 +499,18 @@ class plottingTools:
                 ax.plot(kpoints, band, c=color, linewidth=self.main_linewidth, linestyle=self.main_linestyle)
 
         # ------------- set limits --------------
-        ax.set_xlim([kticks[0], kticks[-1]])
+        bool_klabels = [i=='' for i in klabels]
+        klabels_filtered = [i for i in klabels if i!='']
+        if any(bool_klabels):
+            if len(klabels_filtered)!=2:
+                ind = klabels.index('')
+                ax.set_xlim([0,kticks[ind-1]])
+            elif len(klabels_filtered)==2:
+                ind1 = klabels.index(klabels_filtered[0])
+                ind2 = klabels.index(klabels_filtered[1])
+                ax.set_xlim([kticks[ind1],kticks[ind2]])
+        else:
+            ax.set_xlim([kticks[0], kticks[-1]])
         ax.set_ylim(E_limit)
         ax.set_ylabel(r'$E-E_{F} [eV]$')
 
@@ -1076,7 +1087,18 @@ class plottingTools:
  
             ax.add_collection(lc)
         # ---------- set limits and ylabel ----------
-        ax.set_xlim([kticks[0], kticks[-1]])
+        bool_klabels = [i=='' for i in klabels]
+        klabels_filtered = [i for i in klabels if i!='']
+        if any(bool_klabels):
+            if len(klabels_filtered)!=2:
+                ind = klabels.index('')
+                ax.set_xlim([0,kticks[ind-1]])
+            elif len(klabels_filtered)==2:
+                ind1 = klabels.index(klabels_filtered[0])
+                ind2 = klabels.index(klabels_filtered[1])
+                ax.set_xlim([kticks[ind1],kticks[ind2]])
+        else:
+            ax.set_xlim([kticks[0], kticks[-1]])
         ax.set_ylim(E_limit)
         ax.set_ylabel(r'$E-E_{F} [eV]$')
         # ------ plot klabels and kticks ------
