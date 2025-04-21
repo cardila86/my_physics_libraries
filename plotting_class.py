@@ -1091,6 +1091,13 @@ class plottingTools:
             lc = LineCollection(segments, colors=color_projection, linewidths=self.main_linewidth)
  
             ax.add_collection(lc)
+        # ------ plot klabels and kticks ------
+        for ktick in kticks:
+            ax.axvline(ktick, color=self.k_color, linewidth=self.k_linewidth, linestyle=self.k_linestyle)
+        ax.set_xticks(kticks)
+        ax.set_xticklabels(klabels)
+
+        ax.axhline(0, color=self.E_zero_color, linewidth=self.E_zero_linewidth, linestyle=self.E_zero_linestyle)
         # ---------- set limits and ylabel ----------
         bool_klabels = [i=='' for i in klabels]
         klabels_filtered = [i for i in klabels if i!='']
@@ -1106,13 +1113,6 @@ class plottingTools:
             ax.set_xlim([kticks[0], kticks[-1]])
         ax.set_ylim(E_limit)
         ax.set_ylabel(r'$E-E_{F} [eV]$')
-        # ------ plot klabels and kticks ------
-        for ktick in kticks:
-            ax.axvline(ktick, color=self.k_color, linewidth=self.k_linewidth, linestyle=self.k_linestyle)
-        ax.set_xticks(kticks)
-        ax.set_xticklabels(klabels)
-
-        ax.axhline(0, color=self.E_zero_color, linewidth=self.E_zero_linewidth, linestyle=self.E_zero_linestyle)
         # ------ output -------
         if label is not None:
             ax.legend()
