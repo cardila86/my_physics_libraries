@@ -3,9 +3,6 @@ __maintainer__ = "Carlos Ardila Gutierrez"
 __email__ = "carlos2248383@correo.uis.edu.co"
 __date__ = "January 06, 2025"
 
-import matplotlib
-# matplotlib.use('qtagg')
-
 import matplotlib.pyplot as plt
 from matplotlib.collections import LineCollection
 import os
