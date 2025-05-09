@@ -1410,25 +1410,25 @@ class plottingTools:
             if orbitals_tag=='all':
                 for orbs, label in zip(orbitals, orbitals_labels):
                     if axes_vertical==False:
-                        ax.plot(E, orbs, label=label)
+                        ax.plot(E, orbs, label=label, linewidth=self.main_linewidth, linestyle=self.main_linestyle)
                     elif axes_vertical==True:
-                        ax.plot(orbs, E, label=label)
+                        ax.plot(orbs, E, label=label, linewidth=self.main_linewidth, linestyle=self.main_linestyle)
             else:
                 for tag in orbitals_tag:
                     index = orbitals_labels.index(tag)
                     if axes_vertical==False:
-                        ax.plot(E, orbitals[index], label=tag)
+                        ax.plot(E, orbitals[index], label=tag, linewidth=self.main_linewidth, linestyle=self.main_linestyle)
                     elif axes_vertical==True:
-                        ax.plot(orbitals[index], E, label=tag)
+                        ax.plot(orbitals[index], E, label=tag, linewidth=self.main_linewidth, linestyle=self.main_linestyle)
         elif program=='p4vasp':
             for orb, tag_orb in zip(orbitals, orbitals_tag):
                 if axes_vertical==False:
-                    ax.plot(E, orb, label=tag_orb)
+                    ax.plot(E, orb, label=tag_orb, linewidth=self.main_linewidth, linestyle=self.main_linestyle)
                 elif axes_vertical==True:
-                    ax.plot(orb, E, label=tag_orb)            
+                    ax.plot(orb, E, label=tag_orb, linewidth=self.main_linewidth, linestyle=self.main_linestyle)            
         # --------- plot total DOS ---------
         if axes_vertical==False:
-            ax.plot(E, total, color='gray', linewidth=1, linestyle='--')
+            ax.plot(E, total, color='gray', linewidth=self.main_linewidth, linestyle='--')
             ax.set_xlabel('Energy [eV]')
             ax.set_ylabel('DOS [states/eV]')
             if E_limit is not None:
