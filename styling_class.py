@@ -27,10 +27,12 @@ class styler:
         '''
         Set the dimensions of the graph.
         '''
+        # ------------- fig -------------
         figWidht, figHeight = figSize
         self.fig.set_size_inches(figWidht, figHeight)
         self.fig.set_dpi(figdpi)
         self.fig.subplots_adjust()
+        # -------------------------------
 
     def set_title(self, maintitle=None, ax_title=None,
                     mtitle_fontsize=20, ax_title_fontsize=12):

@@ -492,12 +492,12 @@ class plottingTools:
                                 nodes_separated[i].append(kvec_dir[j])
                                 E_separeted[i].append(E[j])
                                 Egap_separeted[i].append(gap[j])
-                                path_separated.append(i)
+                                path_separated.append(i+1)
                         elif Elimit is None:
-                                nodes_separated[i].append(kvec_dir[j])
-                                E_separeted[i].append(E[j])
-                                Egap_separeted[i].append(gap[j])
-                                path_separated.append(i)
+                            nodes_separated[i].append(kvec_dir[j])
+                            E_separeted[i].append(E[j])
+                            Egap_separeted[i].append(gap[j])
+                            path_separated.append(i+1)
         else:
             if Elimit is not None:
                 for i in range(len(E)):
@@ -583,6 +583,7 @@ class plottingTools:
                                    klabels= None,
                                    kticks=None,
                                    cmap='jet',
+                                   cbar=False,
                                    ax=None,
                                    show=False,
                                    savefile=None,
@@ -592,17 +593,24 @@ class plottingTools:
         '''
         
         import pyprocar
-        
+
+        # if ax is not None:
+        #     fig = ax.get_figure()
+        #     ax_len = len(fig.get_axes())
 
         bands = pyprocar.bandsplot(
                 code='vasp', dirname=path_read, mode=mode,
                 fermi=E_zero, fermi_color = 'black', fermi_linestyle='dashed', fermi_linewidth=0.5,
-                elimit=E_limit, cmap=cmap, linestyle=['solid', 'solid'], linewidth=[1, 1],
+                elimit=E_limit, cmap=cmap, linestyle=['solid', 'solid'], linewidth=[self.main_linewidth, self.main_linewidth],
                 kticks=kticks, knames=klabels,
                 atoms=atoms, orbitals=orbitals, spins=spins,
                 show=show, savefig=savefile, dpi=300, ax=ax, export_data_file=export_data)
         
         fig, ax = bands[0:2]
+
+        # if not cbar:
+        #     if abs(ax_len-len(fig.get_axes()))>0:
+        #         fig.delaxes(fig.axes[-1])
 
         return fig, ax    
 
