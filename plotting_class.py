@@ -589,24 +589,22 @@ class plottingTools:
                                    savefile=None,
                                    export_data=None):
         '''
-        Uses pyprocar 6.3.2
+        Uses pyprocar 6.1.3
         '''
-        
         import pyprocar
-
-        # if ax is not None:
-        #     fig = ax.get_figure()
-        #     ax_len = len(fig.get_axes())
-
+        
+        if not os.path.exists(path_read+'/PROCAR-repaired'):
+            pyprocar.repair(path_read+'/PROCAR', path_read+'/PROCAR-repaired')
+        
         bands = pyprocar.bandsplot(
                 code='vasp', dirname=path_read, mode=mode,
                 fermi=E_zero, fermi_color = 'black', fermi_linestyle='dashed', fermi_linewidth=0.5,
-                elimit=E_limit, cmap=cmap, linestyle=['solid', 'solid'], linewidth=[self.main_linewidth, self.main_linewidth],
-                kticks=kticks, knames=klabels,
-                atoms=atoms, orbitals=orbitals, spins=spins,
-                show=show, savefig=savefile, dpi=300, ax=ax, export_data_file=export_data)
+                cmap=cmap, linestyle=['solid', 'solid'], linewidth=[1, 1],
+                spins=spins, atoms=atoms, orbitals=orbitals, 
+                elimit=E_limit, knames=klabels, kticks=kticks,                
+                show=show, savefig=savefile, dpi=300, ax=ax)  #, export_data_file=export_data)
         
-        fig, ax = bands[0:2]
+        fig, ax = bands.fig, bands.ax
 
         # if not cbar:
         #     if abs(ax_len-len(fig.get_axes()))>0:
