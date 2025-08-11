@@ -1,0 +1,13 @@
+
+# - default style parameters for line figs -
+main_linewidth=1.3
+main_linestyle='-'
+
+E_zero_color='gray'
+E_zero_linewidth=0.2
+E_zero_linestyle='--'
+
+k_color='gray'
+k_linewidth=0.2
+k_linestyle='-'
+# ------------------------------------------
