@@ -5,6 +5,7 @@ fig, axs = plt.subplots(3, 1, figsize=[6, 4])
 
 t0 = time.time()
 import my_physics_libraries as mpl
+from my_physics_libraries.styling import styler 
 
 path_read='./scf-soc/bands'
 fermi_path='./scf-soc'
@@ -22,6 +23,9 @@ for i, soc in zip([0, 1, 2], ['x', 'y', 'z']):
                   kbreaks=[7, 8],
                   ax=axs[i],
                   )
+   if i!=2:
+      style = styler(fig, axs[i])
+      style.set_ticks(erase_xticks=True)
 
 print('running time: ', time.time()-t0)
 

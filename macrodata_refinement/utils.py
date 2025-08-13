@@ -13,6 +13,76 @@ class read:
     def __init__(self):
         pass
 
+    def __read_spin_polarization(self, file):
+        spin_projections = np.transpose(file.spd[:, :, :, -1, -1], axes=(1, 0, 2))  # Does not  filter orbs neither atoms
+        return spin_projections
+    
+    def __read_orbitals_projection(self, file):
+        """
+        This function loads the project weights of the orbitals in each band
+        from vasprun.xml into a dictionary of the form:
+        band index --> atom index --> weights of orbitals
+
+        Returns:
+            projected_dict (dict([str][int][pd.DataFrame])): Dictionary containing the projected weights of all orbitals on each atom for each band.
+        """
+
+        if (
+            self.ispin
+            and not self.lsorbit
+            and np.sum(self.poscar.natoms) == 1
+        ):
+            shape = int(file.spd.shape[1] / 2)
+            projected_eigenvalues_up = np.transpose(
+                file.spd[:, :shape, 0, :, 1:-1], axes=(1, 0, 2, 3)
+            )
+            projected_eigenvalues_down = np.transpose(
+                file.spd[:, shape:, 0, :, 1:-1], axes=(1, 0, 2, 3)
+            )
+            projected_eigenvalues = np.concatenate(
+                [
+                    projected_eigenvalues_up[:, :, :, :, np.newaxis],
+                    projected_eigenvalues_down[:, :, :, :, np.newaxis],
+                ],
+                axis=4,
+            )
+            projected_eigenvalues = np.transpose(
+                projected_eigenvalues, axes=(0, 1, 4, 2, 3)
+            )
+        elif (
+            self.ispin
+            and not self.lsorbit
+            and np.sum(self.poscar.natoms) != 1
+        ):
+            shape = int(file.spd.shape[1] / 2)
+            projected_eigenvalues_up = np.transpose(
+                file.spd[:, :shape, 0, :-1, 1:-1], axes=(1, 0, 2, 3)
+            )
+            projected_eigenvalues_down = np.transpose(
+                file.spd[:, shape:, 0, :-1, 1:-1], axes=(1, 0, 2, 3)
+            )
+            projected_eigenvalues = np.concatenate(
+                [
+                    projected_eigenvalues_up[:, :, :, :, np.newaxis],
+                    projected_eigenvalues_down[:, :, :, :, np.newaxis],
+                ],
+                axis=4,
+            )
+            projected_eigenvalues = np.transpose(
+                projected_eigenvalues, axes=(0, 1, 4, 2, 3)
+            )
+        else:
+            if np.sum(self.poscar.natoms) == 1:
+                projected_eigenvalues = np.transpose(
+                    file.spd[:, :, :, :, 1:-1], axes=(1, 0, 2, 3, 4)
+                )
+            else:
+                projected_eigenvalues = np.transpose(
+                    file.spd[:, :, :, :-1, 1:-1], axes=(1, 0, 2, 3, 4)
+                )
+
+        return projected_eigenvalues
+
     def _read_bands_vasp(self,
         path_read,
         fermi_path,
@@ -32,31 +102,33 @@ class read:
                 os.path.join(path_read, "PROCAR_repaired"))
 
         outcarparser = UtilsProcar()
-        # ---- check for processed band file -----
-        if not os.path.exists(os.path.join(path_read, "bands.npy")):
-            band_file=False
+        # ---- check for processed band file -----            
+        if (not os.path.exists(os.path.join(path_read, "atoms_projections.npy")) and atoms is not None) or \
+        (not os.path.exists(os.path.join(path_read, "orbitals_projections.npy")) and orbitals is not None and atoms is None) or \
+        (not os.path.exists(os.path.join(path_read, "spin_projections.npy")) and spin is not None and orbitals is None and atoms is None) or \
+        not os.path.exists(os.path.join(path_read, "klabels_kticks.txt")) or\
+        not os.path.exists(os.path.join(path_read, "kpoints.txt")) or\
+        not os.path.exists(os.path.join(path_read, "bands.npy")):
+            missing_file=True            
         else:
-            band_file=True
-        if not os.path.exists(os.path.join(path_read, "kpoints.txt")):
-            kpoints_file=False
-        else:
-            kpoints_file=True
-        if not os.path.exists(os.path.join(path_read, "klabels_kticks.txt")):
-            klabels_kticks_file=False
-        else:
-            klabels_kticks_file=True
-        if not os.path.exists(os.path.join(path_read, "spin_projections.npy")):
-            spins_file=False
-        else:
-            spins_file=True
-        if not os.path.exists(os.path.join(path_read, "orbitals_projections.npy")):
-            orbitals_file=False
-        else:
-            orbitals_file=True
-        if not os.path.exists(os.path.join(path_read, "atoms_projections.npy")):
-            atoms_file=False
-        else:
-            atoms_file=True
+            missing_file=False
+        # --- organize spin ---
+        if spin is not None:
+            if spin in ['x', 'y', 'z', 'up', 'down']:
+                if spin=='x':
+                    spin = 1
+                elif spin=='y':
+                    spin = 2
+                elif spin=='z':
+                    spin = 3
+                elif spin=='up':
+                    spin = 0
+                elif spin=='down':
+                    spin = 1
+            elif int(spin) in [0, 1, 2, 3]:
+                pass
+            else:
+                raise ValueError("Invalid spin option. Choose 'x', 'y', 'z', 'up', 'down' or an int between 0 and 3.")
         # --- read fermi from file ---
         e_fermi_outcar = 0
         if fermi_path is not None:
@@ -66,7 +138,7 @@ class read:
         outcarparser = UtilsProcar()
         recLat = outcarparser.RecLatOutcar(os.path.join(path_read, "OUTCAR"))
 
-        if not band_file or not kpoints_file or (not spins_file and spin is not None) or (not orbitals_file and orbitals is not None) or (not atoms_file and atoms is not None) or not klabels_kticks_file:
+        if missing_file:
             file = ProcarParser()
             file.readFile(os.path.join(path_read, "PROCAR_repaired"), recLattice=recLat)
             data = ProcarSelect(file)
@@ -125,9 +197,31 @@ class read:
                     f.write(f"{l}\t{t}\n")
             np.savetxt(os.path.join(path_read, "kpoints.txt"), kpoints)
             # -- projections --
-            if spin is not None:
-                spin_projections = np.transpose(file.spd[:, :, :, -1, -1], axes=(1, 0, 2))  # Does not  filter orbs neither atoms
+            if spin is not None and orbitals is None and atoms is None:
+                spin_projections = self.__read_spin_polarization(file)
                 np.save(os.path.join(path_read, "spin_projections.npy"), spin_projections)
+            if orbitals is not None and atoms is None:
+                # --------------- checking lsorbit and ispin ---------------
+                from pymatgen.io.vasp.inputs import Incar, Poscar
+                self.incar = Incar.from_file(os.path.join(path_read, "INCAR"))
+                self.poscar = Poscar.from_file(os.path.join(path_read, "POSCAR"),check_for_POTCAR=False,read_velocities=False)
+                if "LSORBIT" in self.incar:
+                    if self.incar["LSORBIT"]:
+                        self.lsorbit = True
+                    else:
+                        self.lsorbit = False
+                else:
+                    self.lsorbit = False
+                if "ISPIN" in self.incar:
+                    if self.incar["ISPIN"] == 2:
+                        self.ispin = True
+                    else:
+                        self.ispin = False
+                else:
+                    self.ispin = False
+                # -------- reading projections --------
+                orbitals_projections = self.__read_orbitals_projection(file)
+                np.save(os.path.join(path_read, "orbitals_projections.npy"), orbitals_projections)
         else:
             print('---------------------------------------------')
             print('======= reading processed input files =======')
@@ -140,32 +234,72 @@ class read:
             kticks = k_labels_ticks[0]
             klabels = k_labels_ticks[1]
             kticks = [float(k) for k in kticks]
-            if spin is not None:
+            if spin is not None and orbitals is None and atoms is None:
                 spin_projections = np.load(os.path.join(path_read, "spin_projections.npy"))            
+            if orbitals is not None and atoms is None:
+                orbitals_projections = np.load(os.path.join(path_read, "orbitals_projections.npy"))
+                 # --------------- checking lsorbit and ispin ---------------
+                from pymatgen.io.vasp.inputs import Incar, Poscar
+                self.incar = Incar.from_file(os.path.join(path_read, "INCAR"))
+                self.poscar = Poscar.from_file(os.path.join(path_read, "POSCAR"),check_for_POTCAR=False,read_velocities=False)
+                if "LSORBIT" in self.incar:
+                    if self.incar["LSORBIT"]:
+                        self.lsorbit = True
+                    else:
+                        self.lsorbit = False
+                else:
+                    self.lsorbit = False
+                if "ISPIN" in self.incar:
+                    if self.incar["ISPIN"] == 2:
+                        self.ispin = True
+                    else:
+                        self.ispin = False
+                else:
+                    self.ispin = False      
             if atoms is not None:
                 atoms_projections = np.load(os.path.join(path_read, "atoms_projections.npy"))       
-            if orbitals is not None:
-                orbitals_projections = np.load(os.path.join(path_read, "orbitals_projections.npy"))
-
         # ------- select data --------
-        if spin is not None:
-            if spin=='x':
-                spin = 1
-            elif spin=='y':
-                spin = 2
-            elif spin=='z':
-                spin = 3
-            elif spin=='up':
-                spin = 0
-            elif spin=='down':
-                spin = 1
-            else:
-                raise ValueError("Invalid spin option. Choose 'x', 'y', 'z', 'up', or 'down'.")
-            
+        if spin is not None and orbitals is None and atoms is None:  
             spin_projections = spin_projections[:, :, spin]
             return bands, kpoints, e_fermi_outcar, kticks, klabels, spin_projections
-        elif orbitals is not None:
-            pass
+        elif orbitals is not None and atoms is None:
+            if spin is None:
+                spin=0
+                orbitals_projections = orbitals_projections[:, :, spin, :, :]
+                spin=None
+            else:
+                orbitals_projections = orbitals_projections[:, :, spin, :, :]
+
+                separated_projections = np.zeros(
+                    orbitals_projections.shape + (2,)
+                )
+                separated_projections[
+                    orbitals_projections > 0, 0
+                ] = orbitals_projections[orbitals_projections > 0]
+                separated_projections[
+                    orbitals_projections < 0, 1
+                ] = -orbitals_projections[orbitals_projections < 0]
+
+                orbitals_projections = separated_projections[..., spin]
+            
+            orbitals_projections = np.square(orbitals_projections)
+            # ------------------------
+            orbitals_projections = orbitals_projections.sum(axis=2)
+            # empty list to load the selected projections
+            orbs_shape = orbitals_projections.shape
+            orbs_shape = (orbs_shape[0], orbs_shape[1], len(orbitals))
+            orbitals_projections_selected = np.empty(orbs_shape)
+
+            for i in range(len(orbitals)):
+                orb = orbitals[i]
+                if type(orb) == list:
+                    l = orbitals_projections[:, :, orb]
+                    orbitals_projections_selected[:, :, i] = l.sum(axis=2)
+                else:
+                    orbitals_projections_selected[:, :, i] = orbitals_projections[:, :, orb]
+            orbitals_projections = orbitals_projections_selected
+
+            return bands, kpoints, e_fermi_outcar, kticks, klabels, orbitals_projections
         elif atoms is not None:
             pass
         else:
@@ -606,6 +740,7 @@ class process:
         # --------------------------------------
 
         return nodes_separated, E_separeted, Egap_separeted, path_separated
+
 
 class tools:
     def __init__(self):

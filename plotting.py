@@ -42,13 +42,16 @@ class bands:
         kticks,
         kbreaks,
         label,
+        color,
         cmap,
         nbands,
+        spin,
+        orbitals,
+        atoms,
         vmin,
         vmax,
         cbar_bool,
         ax):
-        assert bands.shape == parameter.shape, "E and parameter must have the same shape."
         if type(kpoints)!=np.ndarray:
             kpoints = np.array(kpoints)
         if type(bands[0])!=np.ndarray:
@@ -74,21 +77,9 @@ class bands:
                     if j!=0 and abs(kpoints[j]-kticks[i])<abs(kpoints[j]-kpoints[j-1])/2: # Mira que este cerca a un ktick
                         for k in range(len(bands)):
                             bands[k][j] = np.nan
-        # -------- vmin and vmax --------
-        if vmin is None:
-            vmin = np.min(parameter)
-        if vmax is None:
-            vmax = np.max(parameter)
-        
-        # width = (np.max(parameter)-np.min(parameter))
-        # pam_min = np.min(parameter)
-        # for i in range(len(parameter)):
-        #     parameter[i] = (parameter[i]-pam_min)/width*(vmax-vmin) + vmin
-        
-        norm = plt.Normalize(vmin, vmax)
-        # ------ plotting --------
+        # --- isolate nbands ---
         if nbands is None:
-            pass
+                pass
         elif type(nbands) is int or type(nbands) is float:
             bands=bands[0:int(nbands)]
             parameter=parameter[0:int(nbands)]
@@ -100,17 +91,122 @@ class bands:
                 parameter_new.append(parameter[int(i)])
         else:
             print('ERROR: nbands must be an integer, a float or a list of integers.\n'+
-                  'a '+str(type(nbands))+' type was recieved. Please check inputs.') 
+                'a '+str(type(nbands))+' type was recieved. Please check inputs.') 
             exit()
-        # --- plot plain bands as background ---
-        for band in bands:
-            ax.plot(kpoints, band, c='gray', linewidth=self.main_linewidth/5, linestyle=self.main_linestyle)
-        # --- scatter plot ---
-        markersize=self.marker_size*self.main_linewidth/max([vmax, vmin])
-        for i in range(len(bands)):
-            ax.scatter(kpoints, bands[i], c=parameter[i], cmap=cmap, s=abs(parameter[i])*markersize, norm=norm)
-        if cbar_bool:
-                cbar = fig.colorbar(plt.cm.ScalarMappable(norm=norm, cmap=cmap), ax=ax, orientation='vertical', label=None)
+        # ======= distinguis between spin polarization and projected bands =======
+        # --- spin polarized ---
+        if spin is not None and orbitals is None and atoms is None:
+            # -------- vmin and vmax --------
+            if vmin is None:
+                vmin = np.min(parameter)
+            if vmax is None:
+                vmax = np.max(parameter)
+
+            norm = plt.Normalize(vmin, vmax)
+            # ------ plotting --------
+            # --- plot plain bands as background ---
+            for band in bands:
+                ax.plot(kpoints, band, c='gray', linewidth=self.main_linewidth/5, linestyle=self.main_linestyle)
+            # --- scatter plot ---
+            markersize=self.marker_size*self.main_linewidth/max([vmax, vmin])
+            for i in range(len(bands)):
+                ax.scatter(kpoints, bands[i], c=parameter[i], cmap=cmap, s=abs(parameter[i])*markersize, norm=norm)
+            if cbar_bool:
+                    cbar = fig.colorbar(plt.cm.ScalarMappable(norm=norm, cmap=cmap), ax=ax, orientation='vertical', label=None)
+        # --- projected bands ---
+        elif orbitals is not None or atoms is not None:
+            # organize parameters
+            if orbitals is not None and atoms is None:
+                pass
+
+            elif orbitals is None and atoms is not None:
+                parameter = parameter[:, :, :, 0]
+            # colors and labels
+            if type(color) != list:
+                color_custom = False
+            else:
+                color_custom = True
+            color = [
+            np.array([255, 0, 0])/255,
+            np.array([0, 255, 0])/255,
+            np.array([0, 0, 255])/255,
+            np.array([255, 255, 0])/255,
+            np.array([0, 255, 255])/255,
+            np.array([255, 0, 255])/255,
+            np.array([255, 255, 255])/255,
+            np.array([0, 0, 0])/255,
+            np.array([128, 128, 128])/255,
+            np.array([139, 0, 0])/255,
+            np.array([34, 139, 34])/255,
+            np.array([0, 0, 128])/255,
+            np.array([255, 165, 0])/255,
+            np.array([128, 0, 128])/255,
+            np.array([165, 42, 42])/255,
+            np.array([0, 128, 128])/255,
+            ]
+            if color_custom:
+                if len(orbitals)==1:
+                    if type(orbitals[0])==list:
+                        color.append(color[0])
+                    else:
+                        color[orbitals[0]] = color[0]
+                else:
+                    for i in range(len(orbitals)):
+                        if type(orbitals[i])==list:
+                            color.append(color[i])
+                        else:
+                            color[orbitals[i]] = color[i]
+
+            orbital_labels = [
+            r"$s$",
+            r"$p_{y}$",
+            r"$p_{z}$",
+            r"$p_{x}$",
+            r"$d_{xy}$",
+            r"$d_{yz}$",
+            r"$d_{z^{2}}$",
+            r"$d_{xz}$",
+            r"$d_{x^{2}-y^{2}}$",
+            r"$f_{y^{3}x^{2}}$",
+            r"$f_{xyz}$",
+            r"$f_{yz^{2}}$",
+            r"$f_{z^{3}}$",
+            r"$f_{xz^{2}}$",
+            r"$f_{zx^{3}}$",
+            r"$f_{x^{3}}$",
+            ]
+            # ----- check if there is a whole orbital -----
+            for i in range(len(orbitals)):
+                if type(orbitals[i])==list:
+                    # -- orbitals --
+                    if 1 in orbitals[i] and 2 in orbitals[i] and 3 in orbitals[i]:
+                        orbitals[i] = len(orbital_labels)
+                        orbital_labels.append('p')
+                        if not color_custom:
+                            color.append('b')
+                    elif 4 in orbitals[i] and 5 in orbitals[i] and 6 in orbitals[i] and 7 in orbitals[i] and 8 in orbitals[i]:
+                        orbitals[i] = len(orbital_labels)
+                        orbital_labels.append('d')
+                        if not color_custom:
+                            color.append('y')
+                    else:
+                        orbitals[i] = len(orbital_labels)
+                        orbital_labels.append('-')
+                        if not color_custom:
+                            color.append('g')
+                else:
+                    pass
+            # ---------------------------------------------
+            markersize=self.marker_size*self.main_linewidth
+            shape = parameter.shape
+            # --- plot plain bands as background ---
+            for band in bands:
+                ax.plot(kpoints, band, c='gray', linewidth=self.main_linewidth/5, linestyle=self.main_linestyle)
+            # -- plot scatter --
+            kpoints = list(kpoints)*len(bands)
+            for j in range(shape[-1]):
+                s = abs(parameter[:, :, j])*markersize
+                ax.scatter(kpoints, bands, color=color[orbitals[j]], label=orbital_labels[orbitals[j]],s=s)
         # ------------- set limits --------------
         bool_klabels = [i=='' for i in klabels]
         klabels_filtered = [i for i in klabels if i!='']
@@ -136,8 +232,12 @@ class bands:
         kticks,
         kbreaks,
         label,
+        color,
         cmap,
         nbands,
+        spin,
+        orbitals,
+        atoms,
         vmin,
         vmax,
         cbar_bool,

@@ -57,6 +57,7 @@ def plot_bands(
     fermi_path=None,
     E_vaspkit=False,
     cbar=True,
+    legend=True,
     ax=None,
     show=False,
     savefile=None
@@ -159,7 +160,7 @@ def plot_bands(
             bands, kpoints, e_fermi_outcar, ___, klabels, projection = r_bands._read_bands_vasp(path_read, fermi_path, spin, orbitals, atoms, klabels=True, kticks=True)
         elif klabels is not None and kticks is not None:
             bands, kpoints, e_fermi_outcar, ___, ____, projection = r_bands._read_bands_vasp(path_read, fermi_path, spin, orbitals, atoms, klabels=True, kticks=True)
-        
+            # bands, kpoints, e_fermi_outcar, kticks, klabels, orbitals_projections
         
         E_zero += e_fermi_outcar
     # ------------ plotting ------------
@@ -184,8 +185,12 @@ def plot_bands(
                             kticks,
                             kbreaks,
                             label,
+                            color,
                             cmap,
                             nbands,
+                            spin,
+                            orbitals,
+                            atoms,
                             vmin,
                             vmax,
                             cbar,
@@ -199,8 +204,12 @@ def plot_bands(
                             kticks,
                             kbreaks,
                             label,
+                            color,
                             cmap,
                             nbands,
+                            spin,
+                            orbitals,
+                            atoms,
                             vmin,
                             vmax,
                             cbar,
@@ -212,6 +221,11 @@ def plot_bands(
     ax.set_ylabel(r'$E-E_{F} [eV]$')
     if E_limit is not None:
         ax.set_ylim(E_limit)
+    if legend:
+        lgnd = ax.legend(scatterpoints=1, fontsize=10)
+        # make all label markers the same size even when plotting different sizes
+        for i in range(len(lgnd.legend_handles)):
+            lgnd.legend_handles[i]._sizes =[20]
     if savefile is not None:
         plt.savefig(os.path.join(path_read, savefile), bbox_inches='tight')
     if show:
