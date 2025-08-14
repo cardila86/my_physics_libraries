@@ -44,6 +44,7 @@ def plot_bands(
     spin=None,
     orbitals=None,
     atoms=None,
+    root=None,
 
     klabels= None,
     kticks=None,
@@ -127,25 +128,25 @@ def plot_bands(
             elif code=='wannier90':
                 path_read=path_read+'/'#+root
                 if klabels is None and kticks is None:
-                    kpoints, E, klabels, kticks = r_bands._read_bands_wannier(path_read, klabels_bool=True, kticks_bool=True)
+                    kpoints, E, klabels, kticks = r_bands._read_bands_wannier90(path_read, klabels_bool=True, kticks_bool=True)
                 elif klabels is None and kticks is not None:
-                    kpoints, E, klabels = r_bands._read_bands_wannier(path_read, klabels_bool=True, kticks_bool=False)
+                    kpoints, E, klabels = r_bands._read_bands_wannier90(path_read, klabels_bool=True, kticks_bool=False)
                 elif klabels is not None and kticks is None:
-                    kpoints, E, kticks = r_bands._read_bands_wannier(path_read, klabels_bool=False, kticks_bool=True)
+                    kpoints, E, kticks = r_bands._read_bands_wannier90(path_read, klabels_bool=False, kticks_bool=True)
                 else:
-                    kpoints, E = r_bands._read_bands_wannier(path_read, klabels_bool=False, kticks_bool=False)
+                    kpoints, E = r_bands._read_bands_wannier90(path_read, klabels_bool=False, kticks_bool=False)
             # -------------- plotting --------------
             fig, ax = b_plotter.plot_bands_processed(kpoints, E, E_zero, E_limit, klabels, kticks, kbreaks, label, color, nbands, ax)
     elif code=='p4vasp':
         # -------------- reads info ------------
         if klabels is None and kticks is None:
-            kpoints, bands, bands_projections, klabels, kticks = r_bands._read_bands_p4vasp_projected(path_read, klabels_bool=True, kticks_bool=True)
+            kpoints, bands, bands_projections, klabels, kticks = r_bands._read_pbands_p4vasp(path_read, root, klabels_bool=True, kticks_bool=True)
         elif klabels is None and kticks is not None:
-            kpoints, bands, bands_projections, klabels = r_bands._read_bands_p4vasp_projected(path_read, klabels_bool=True, kticks_bool=False)
+            kpoints, bands, bands_projections, klabels = r_bands._read_pbands_p4vasp(path_read, root, klabels_bool=True, kticks_bool=False)
         elif klabels is not None and kticks is None:
-            kpoints, bands, bands_projections, kticks = r_bands._read_bands_p4vasp_projected(path_read, klabels_bool=False, kticks_bool=True)
+            kpoints, bands, bands_projections, kticks = r_bands._read_pbands_p4vasp(path_read, root, klabels_bool=False, kticks_bool=True)
         else:
-            kpoints, bands, bands_projections = r_bands._read_bands_p4vasp_projected(path_read, klabels_bool=False, kticks_bool=False)
+            kpoints, bands, bands_projections = r_bands._read_pbands_p4vasp(path_read, root, klabels_bool=False, kticks_bool=False)
         # -------------- plotting --------------
         if color is not list:
             color=[[255, 0, 0], [0, 255, 0], [0, 0, 255]]
@@ -163,60 +164,59 @@ def plot_bands(
             # bands, kpoints, e_fermi_outcar, kticks, klabels, orbitals_projections
         
         E_zero += e_fermi_outcar
-    # ------------ plotting ------------
-    if mode == 'plain':
-        fig, ax = b_plotter.plot_bands_processed(kpoints,
-                            bands,
-                            E_zero,
-                            E_limit,
-                            klabels,
-                            kticks,
-                            kbreaks,
-                            label,
-                            color,
-                            nbands,
-                            ax)
-    elif mode == 'parametric':
-        fig, ax = b_plotter.plot_bands_parametric(kpoints,
-                            bands,
-                            projection,
-                            E_zero,
-                            klabels,
-                            kticks,
-                            kbreaks,
-                            label,
-                            color,
-                            cmap,
-                            nbands,
-                            spin,
-                            orbitals,
-                            atoms,
-                            vmin,
-                            vmax,
-                            cbar,
-                            ax)
-    elif mode == 'scatter':
-        fig, ax = b_plotter.plot_bands_scatter(kpoints,
-                            bands,
-                            projection,
-                            E_zero,
-                            klabels,
-                            kticks,
-                            kbreaks,
-                            label,
-                            color,
-                            cmap,
-                            nbands,
-                            spin,
-                            orbitals,
-                            atoms,
-                            vmin,
-                            vmax,
-                            cbar,
-                            ax)
-    else:
-        print("Invalid mode. Choose 'plain' or 'parametric'.")
-        exit()
+        # ------------ plotting ------------
+        if mode == 'plain':
+            fig, ax = b_plotter.plot_bands_processed(kpoints,
+                                bands,
+                                E_zero,
+                                klabels,
+                                kticks,
+                                kbreaks,
+                                label,
+                                color,
+                                nbands,
+                                ax)
+        elif mode == 'parametric':
+            fig, ax = b_plotter.plot_bands_parametric(kpoints,
+                                bands,
+                                projection,
+                                E_zero,
+                                klabels,
+                                kticks,
+                                kbreaks,
+                                label,
+                                color,
+                                cmap,
+                                nbands,
+                                spin,
+                                orbitals,
+                                atoms,
+                                vmin,
+                                vmax,
+                                cbar,
+                                ax)
+        elif mode == 'scatter':
+            fig, ax = b_plotter.plot_bands_scatter(kpoints,
+                                bands,
+                                projection,
+                                E_zero,
+                                klabels,
+                                kticks,
+                                kbreaks,
+                                label,
+                                color,
+                                cmap,
+                                nbands,
+                                spin,
+                                orbitals,
+                                atoms,
+                                vmin,
+                                vmax,
+                                cbar,
+                                ax)
+        else:
+            print("Invalid mode. Choose 'plain' or 'parametric'.")
+            exit()
     #  --------------------- E_limit -----------------
     ax.set_ylabel(r'$E-E_{F} [eV]$')
     if E_limit is not None:

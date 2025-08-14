@@ -428,6 +428,7 @@ class read:
 
     def _read_pbands_p4vasp(self,
         path_read,
+        root,
         klabels_bool,
         kticks_bool):
         '''
@@ -442,24 +443,24 @@ class read:
         ----------
         kpoints, bands, bands_projection, klabel (optional), kticks (optional)
         '''
-        # ----------- separate bands and projections -----------
-        nlines, nkpoints, nbands = 0, 0, 0
-        with open(path_read) as dataFile:
-            for data in dataFile:
-                if len(data.split())==3:
+        if os.path.isfile(os.path.join(path_read, root)):
+            # ----------- separate bands and projections -----------
+            nlines, nkpoints, nbands = 0, 0, 0
+            with open(os.path.join(path_read, root)) as dataFile:
+                for data in dataFile:
+                    if len(data.split())==3:
 
-                    break
-                elif len(data.split())==0:
-                    if nkpoints==0:
-                        nkpoints = nlines
-                    nbands+=1
-                    nlines+=1
-                else:
-                    nlines+=1
-        kpoints, bands, bands_projection = [], [], []
-        if os.path.isfile(path_read):
+                        break
+                    elif len(data.split())==0:
+                        if nkpoints==0:
+                            nkpoints = nlines
+                        nbands+=1
+                        nlines+=1
+                    else:
+                        nlines+=1
+            kpoints, bands, bands_projection = [], [], []
             # -------- bands, kpoints and projection --------
-            data_projection = np.loadtxt(path_read, usecols=(0,1,2), skiprows=nlines)
+            data_projection = np.loadtxt(os.path.join(path_read, root), usecols=(0,1,2), skiprows=nlines)
             data_projection = data_projection.transpose()
             kpoints = data_projection[0][:nkpoints]*2*np.pi
             bands = data_projection[1]
@@ -481,11 +482,11 @@ class read:
                     assert len(kpoints) == len(bands_projection[i][j]), 'ERROR: The number of kpoints in the bands and the projection file do not match. (2)'
             # =====================================================
         else:
-            print(f'ERROR: path \'{path_read}\' not found')
+            print(f'ERROR: path \'{os.path.join(path_read, root)}\' not found')
         # ------- kticks & klabels --------
         if klabels_bool or kticks_bool:
             klabel, kticks = [], []
-            with open(path_read + '/KLABELS') as data_file:
+            with open(os.path.join(path_read, 'KLABELS')) as data_file:
                 for data in data_file:
                     if len(data.split())==2:
                         label = data.split()[0]
