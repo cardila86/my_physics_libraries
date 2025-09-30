@@ -82,6 +82,17 @@ class styler:
         if erase_yticks:
             self.ax.set_yticks([])
 
+    def set_cbar(self, ind,
+                 ticks=None, ticksize=None,
+                 label=None, fontsize=None,):
+        cbar = self.fig.axes[ind]
+        if ticks is not None:
+            cbar.set_yticks(ticks)
+        if ticksize is not None:
+            cbar.tick_params(labelsize=ticksize)
+        if label is not None:
+            cbar.set_label('My Data Scale', fontsize=fontsize)
+
     def set_lim(self, xlim=None, ylim=None):
         '''
         Set the limits of the graph.

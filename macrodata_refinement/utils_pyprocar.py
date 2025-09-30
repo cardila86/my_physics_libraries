@@ -128,7 +128,7 @@ class UtilsProcar:
 
     else:
       self.log.debug("File not exist, neither a gzipped version")
-      raise IOError("File not found")
+      raise IOError(f"File not found: {FileName}")
 
     self.log.debug("OpenFile()...done")
     return inFile
@@ -384,7 +384,6 @@ class ProcarParser:
 
     # trying to identify an non-polarized or non-collinear case, a
     # polarized case or a defective file
-
     if len(self.kpoints) != self.kpointsCount:
       #if they do not match, may means two things a spin polarized
       #case or a bad file, lets check
@@ -580,9 +579,9 @@ class ProcarParser:
       # bands.
       up,down = np.vsplit(self.spd, 2)
       # ispin = 1 for a while, we will made the distinction
-      up.shape = (self.kpointsCount, self.bandsCount/2, 1,
+      up.shape = (self.kpointsCount, int(self.bandsCount/2), 1,
                   self.ionsCount, self.orbitalCount+1)
-      down.shape = (self.kpointsCount, self.bandsCount/2, 1,
+      down.shape = (self.kpointsCount, int(self.bandsCount/2), 1,
                     self.ionsCount, self.orbitalCount+1)
       # concatenating bandwise. Density and magntization, their
       # meaning is obvious, and do uses 2 times more memory than

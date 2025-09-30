@@ -5,6 +5,7 @@ __date__ = "August 05, 2025"
 
 import matplotlib.pyplot as plt
 from matplotlib.collections import LineCollection
+from matplotlib.colors import LinearSegmentedColormap
 import numpy as np
 import os
 
@@ -18,12 +19,15 @@ class bands:
         k_color='gray',
         k_linewidth=0.2,
         k_linestyle='-',
+        background_linecolor='lightgray',
         marker_size=1):
 
         self.marker_size=marker_size
 
         self.main_linewidth=main_linewidth
         self.main_linestyle=main_linestyle
+
+        self.background_linecolor=background_linecolor
 
         self.E_zero_color=E_zero_color
         self.E_zero_linewidth=E_zero_linewidth
@@ -106,19 +110,18 @@ class bands:
             # ------ plotting --------
             # --- plot plain bands as background ---
             for band in bands:
-                ax.plot(kpoints, band, c='gray', linewidth=self.main_linewidth/5, linestyle=self.main_linestyle)
+                ax.plot(kpoints, band, c=self.background_linecolor, linewidth=self.main_linewidth/5, linestyle=self.main_linestyle)
             # --- scatter plot ---
-            markersize=self.marker_size*self.main_linewidth/max([vmax, vmin])
             for i in range(len(bands)):
-                ax.scatter(kpoints, bands[i], c=parameter[i], cmap=cmap, s=abs(parameter[i])*markersize, norm=norm)
+                ax.scatter(kpoints, bands[i], c=parameter[i], cmap=cmap, s=abs(parameter[i])*self.marker_size, norm=norm)
             if cbar_bool:
                     cbar = fig.colorbar(plt.cm.ScalarMappable(norm=norm, cmap=cmap), ax=ax, orientation='vertical', label=None)
+                    cbar.set_ticks([vmin,(vmax-vmin)/2+vmin,vmax])
         # --- projected bands ---
         elif orbitals is not None or atoms is not None:
             # organize parameters
             if orbitals is not None and atoms is None:
                 pass
-
             elif orbitals is None and atoms is not None:
                 parameter = parameter[:, :, :, 0]
             # colors and labels
@@ -126,7 +129,8 @@ class bands:
                 color_custom = False
             else:
                 color_custom = True
-            color = [
+                color = [np.array(i)/255 for i in color]
+            color_list = [
             np.array([255, 0, 0])/255,
             np.array([0, 255, 0])/255,
             np.array([0, 0, 255])/255,
@@ -147,15 +151,18 @@ class bands:
             if color_custom:
                 if len(orbitals)==1:
                     if type(orbitals[0])==list:
-                        color.append(color[0])
+                        color_list.append(color[0])
                     else:
-                        color[orbitals[0]] = color[0]
+                        color_list[orbitals[0]] = color[0]
                 else:
                     for i in range(len(orbitals)):
                         if type(orbitals[i])==list:
-                            color.append(color[i])
+                            color_list.append(color[i])
                         else:
-                            color[orbitals[i]] = color[i]
+                            color_list[orbitals[i]] = color[i]
+
+            color = color_list
+
 
             orbital_labels = [
             r"$s$",
@@ -197,15 +204,14 @@ class bands:
                 else:
                     pass
             # ---------------------------------------------
-            markersize=self.marker_size*self.main_linewidth
             shape = parameter.shape
             # --- plot plain bands as background ---
             for band in bands:
-                ax.plot(kpoints, band, c='gray', linewidth=self.main_linewidth/5, linestyle=self.main_linestyle)
+                ax.plot(kpoints, band, c=self.background_linecolor, linewidth=self.main_linewidth/5, linestyle=self.main_linestyle)
             # -- plot scatter --
             kpoints = list(kpoints)*len(bands)
             for j in range(shape[-1]):
-                s = abs(parameter[:, :, j])*markersize
+                s = abs(parameter[:, :, j])*self.marker_size
                 ax.scatter(kpoints, bands, color=color[orbitals[j]], label=orbital_labels[orbitals[j]],s=s)
         # ------------- set limits --------------
         bool_klabels = [i=='' for i in klabels]
@@ -515,6 +521,177 @@ class bands:
         fig, ax = bands.fig, bands.ax
 
         return fig, ax    
+
+    def plot_surface_scatter(self,
+        kpoints,
+        bands,
+        parameter,
+        E_zero,
+        color,
+        nbands,
+        spin,
+        orbitals,
+        atoms,
+        vmin,
+        vmax,
+        cbar_bool,
+        ax):
+        if type(kpoints)!=np.ndarray:
+            kpoints = np.array(kpoints)
+        if type(bands[0])!=np.ndarray:
+            bands = [np.array(band) for band in bands]
+        # ------ shift e fermi ------
+        bands = [band-E_zero for band in bands]
+        # ------------ ax, fig objects -----------
+        if ax is None:
+            fig = plt.figure()
+            ax = fig.add_subplot(projection='3d')
+        else:
+            fig = ax.get_figure()
+       # --- isolate nbands ---
+        if nbands is None:
+                pass
+        elif type(nbands) is int or type(nbands) is float:
+            bands=bands[0:int(nbands)]
+            if parameter is not None:
+                parameter=parameter[0:int(nbands)]
+        elif type(nbands) is list:
+            bands_new=[]
+            parameter_new=[]
+            for i in nbands:
+                bands_new.append(bands[int(i)])
+                if parameter is not None:
+                    parameter_new.append(parameter[int(i)])
+            
+            if parameter is not None:
+                parameter = parameter_new
+            bands = bands_new
+        else:
+            print('ERROR: nbands must be an integer, a float or a list of integers.\n'+
+                'a '+str(type(nbands))+' type was recieved. Please check inputs.') 
+            exit()
+
+        # ======= distinguis between spin polarization and projected bands =======
+        # --- spin polarized ---
+        if spin is not None and orbitals is None and atoms is None:
+            # -------- vmin and vmax --------
+            if vmin is None:
+                vmin = np.min(parameter)
+            if vmax is None:
+                vmax = np.max(parameter)
+
+            norm = plt.Normalize(vmin, vmax)
+            # ------ plotting --------
+            custom_cmap = LinearSegmentedColormap.from_list("my_cmap",[(0, 'blue'), (0.5, 'lightgray'), (1, 'red')],N=256)
+            # --- scatter plot ---
+            for i in range(len(bands)):
+                ax.scatter(kpoints[0], kpoints[1], bands[i], c=parameter[i], cmap=custom_cmap, s=abs(parameter[i])*self.marker_size, norm=norm)
+            if cbar_bool:
+                    cbar = fig.colorbar(plt.cm.ScalarMappable(norm=norm, cmap=custom_cmap), ax=ax, orientation='vertical', label=None)
+                    cbar.set_ticks([vmin,(vmax-vmin)/2+vmin,vmax])
+        # --- projected bands ---
+        elif orbitals is not None or atoms is not None:
+            # organize parameters
+            if orbitals is not None and atoms is None:
+                pass
+            elif orbitals is None and atoms is not None:
+                parameter = parameter[:, :, :, 0]
+            # colors and labels
+            if type(color) != list:
+                color_custom = False
+            else:
+                color_custom = True
+                color = [np.array(i)/255 for i in color]
+            color_list = [
+            np.array([255, 0, 0])/255,
+            np.array([0, 255, 0])/255,
+            np.array([0, 0, 255])/255,
+            np.array([255, 255, 0])/255,
+            np.array([0, 255, 255])/255,
+            np.array([255, 0, 255])/255,
+            np.array([255, 255, 255])/255,
+            np.array([0, 0, 0])/255,
+            np.array([128, 128, 128])/255,
+            np.array([139, 0, 0])/255,
+            np.array([34, 139, 34])/255,
+            np.array([0, 0, 128])/255,
+            np.array([255, 165, 0])/255,
+            np.array([128, 0, 128])/255,
+            np.array([165, 42, 42])/255,
+            np.array([0, 128, 128])/255,
+            ]
+            if color_custom:
+                if len(orbitals)==1:
+                    if type(orbitals[0])==list:
+                        color_list.append(color[0])
+                    else:
+                        color_list[orbitals[0]] = color[0]
+                else:
+                    for i in range(len(orbitals)):
+                        if type(orbitals[i])==list:
+                            color_list.append(color[i])
+                        else:
+                            color_list[orbitals[i]] = color[i]
+
+            color = color_list
+
+
+            orbital_labels = [
+            r"$s$",
+            r"$p_{y}$",
+            r"$p_{z}$",
+            r"$p_{x}$",
+            r"$d_{xy}$",
+            r"$d_{yz}$",
+            r"$d_{z^{2}}$",
+            r"$d_{xz}$",
+            r"$d_{x^{2}-y^{2}}$",
+            r"$f_{y^{3}x^{2}}$",
+            r"$f_{xyz}$",
+            r"$f_{yz^{2}}$",
+            r"$f_{z^{3}}$",
+            r"$f_{xz^{2}}$",
+            r"$f_{zx^{3}}$",
+            r"$f_{x^{3}}$",
+            ]
+            # ----- check if there is a whole orbital -----
+            for i in range(len(orbitals)):
+                if type(orbitals[i])==list:
+                    # -- orbitals --
+                    if 1 in orbitals[i] and 2 in orbitals[i] and 3 in orbitals[i]:
+                        orbitals[i] = len(orbital_labels)
+                        orbital_labels.append('p')
+                        if not color_custom:
+                            color.append('b')
+                    elif 4 in orbitals[i] and 5 in orbitals[i] and 6 in orbitals[i] and 7 in orbitals[i] and 8 in orbitals[i]:
+                        orbitals[i] = len(orbital_labels)
+                        orbital_labels.append('d')
+                        if not color_custom:
+                            color.append('y')
+                    else:
+                        orbitals[i] = len(orbital_labels)
+                        orbital_labels.append('-')
+                        if not color_custom:
+                            color.append('g')
+                else:
+                    pass
+            # ---------------------------------------------
+            shape = parameter.shape
+            # --- plot plain bands as background ---
+            for band in bands:
+                ax.scatter(kpoints[0], kpoints[1], band, c=self.background_linecolor)
+            # -- plot scatter --
+            kpoints = list(kpoints)*len(bands)
+            for j in range(shape[-1]):
+                s = abs(parameter[:, :, j])*self.marker_size
+                ax.scatter(kpoints[0], kpoints[1], bands, color=color[orbitals[j]], label=orbital_labels[orbitals[j]],s=s)
+        # ---
+        elif spin is None and orbitals is None and atoms is None:
+            for band in bands:
+                ax.scatter(kpoints[0], kpoints[1], band, c=color, s=self.marker_size)
+        return fig, ax
+
+
 
     def __discontinuities(self):
         pass
