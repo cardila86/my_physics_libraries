@@ -128,7 +128,7 @@ def plot_bands(
                 else:
                     kpoints, E = r_bands._read_bands_vaspkit(path_read, fermi_vaspkit=E_vaspkit, klabels_bool=False, kticks_bool=False)   
             elif code=='wannier90':
-                path_read=path_read+'/'#+root
+                # path_read=path_read+'/'#+root
                 if klabels is None and kticks is None:
                     kpoints, E, klabels, kticks = r_bands._read_bands_wannier90(path_read, klabels_bool=True, kticks_bool=True)
                 elif klabels is None and kticks is not None:
@@ -233,7 +233,7 @@ def plot_bands(
     if E_limit is not None:
         ax.set_ylim(E_limit)
     if legend:
-        lgnd = ax.legend(scatterpoints=1, fontsize=10)
+        lgnd = ax.legend(scatterpoints=1, fontsize=10, loc='upper right')
         # make all label markers the same size even when plotting different sizes
         for i in range(len(lgnd.legend_handles)):
             lgnd.legend_handles[i]._sizes =[20]

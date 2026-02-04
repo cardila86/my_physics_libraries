@@ -691,8 +691,6 @@ class bands:
                 ax.scatter(kpoints[0], kpoints[1], band, c=color, s=self.marker_size)
         return fig, ax
 
-
-
     def __discontinuities(self):
         pass
 
@@ -816,7 +814,6 @@ class nodes:
         self.k_color=k_color
         self.k_linewidth=k_linewidth
         self.k_linestyle=k_linestyle
-
 
     def plot_nodes_wanniertools(self,
         path_read,

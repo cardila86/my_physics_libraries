@@ -80,9 +80,9 @@ def plot_ldos(path_read,
     # --------- read data ---------
     path = f'{path_read}/{root}'
     if code=='vaspkit':
-        E, orbitals_labels, orbitals, total = r_dos._read_LDoS_vaspkit(path, E_vaspkit)
+        E, orbitals_labels, orbitals, total = r_dos._read_ldos_vaspkit(path, E_vaspkit)
     elif code=='p4vasp':
-        E, orbitals, total = r_dos._read_LDoS_p4vasp(path, E_vaspkit)
+        E, orbitals, total = r_dos._read_ldos_p4vasp(path, E_vaspkit)
     # ------- plotting data -------
     fig, ax = dos_plotter.plot_ldos_vaspkit(code, E, orbitals, total, orbitals_labels, orbitals_tag, colors, E_limit, dos_limit, E_zero, fig_orientation, ax)
 

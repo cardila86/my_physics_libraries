@@ -37,7 +37,7 @@ def separate_nodes(
     r_nodes = read()
     p_nodes = process()
     # -------------- reads info --------------
-    kvec_car, gap, E, kvec_dir = r_nodes._read_nodes_wannierTools(path_read)
-    nodes_separated, E_separeted, Egap_separeted, path_separated = p_nodes.separate_nodes(kvec_car, gap, E, kvec_dir)
+    kvec_car, gap, E, kvec_dir = r_nodes._read_nodes_wanniertools(path_read)
+    nodes_separated, E_separeted, Egap_separeted, path_separated = p_nodes.separate_nodes(kvec_car, gap, E, kvec_dir,kpath, Elimit, ktol, savefile)
 
     return nodes_separated, E_separeted, Egap_separeted, path_separated
