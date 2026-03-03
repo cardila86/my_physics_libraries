@@ -1,16 +1,14 @@
 __author__ = "Carlos Ardila Gutierrez"
 __maintainer__ = "Carlos Ardila Gutierrez"
 __email__ = "carlos2248383@correo.uis.edu.co"
-__date__ = "January 06, 2025"
+__date__ = "August 05, 2025"
 
 import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
 import numpy as np
 
+
 class styler:
-    '''
-    Class to control style details of the graph.    
-    '''
     def __init__(self, fig=None, ax=None):
         self.fig = fig
         self.ax = ax
@@ -83,6 +81,17 @@ class styler:
             self.ax.set_xticks([])
         if erase_yticks:
             self.ax.set_yticks([])
+
+    def set_cbar(self, ind,
+                 ticks=None, ticksize=None,
+                 label=None, fontsize=None,):
+        cbar = self.fig.axes[ind]
+        if ticks is not None:
+            cbar.set_yticks(ticks)
+        if ticksize is not None:
+            cbar.tick_params(labelsize=ticksize)
+        if label is not None:
+            cbar.set_label('My Data Scale', fontsize=fontsize)
 
     def set_lim(self, xlim=None, ylim=None):
         '''
@@ -176,89 +185,3 @@ class styler:
 
         # ----- space betweem subplots -----
         fig.subplots_adjust(wspace=0.045, hspace=0.08)
-
-    def __interactive_legend(ax=None):
-        if ax is None:
-            ax = plt.gca()
-        if ax.legend_ is None:
-            ax.legend()
-        return InteractiveLegend(ax.get_legend())
-
-
-class InteractiveLegend(object):
-    '''
-    Class taken from: tryoing to get the url...
-    '''
-    def __init__(self, legend):
-        self.legend = legend
-        self.fig = legend.axes.figure
-
-        self.lookup_artist, self.lookup_handle = self._build_lookups(legend)
-        self._setup_connections()
-
-        self.update()
-
-    def _setup_connections(self):
-        for artist in self.legend.texts + self.legend.legendHandles:
-            artist.set_picker(10) # 10 points tolerance
-
-        self.fig.canvas.mpl_connect('pick_event', self.on_pick)
-        self.fig.canvas.mpl_connect('button_press_event', self.on_click)
-
-    def _build_lookups(self, legend):
-        labels = [t.get_text() for t in legend.texts]
-        handles = legend.legendHandles
-        label2handle = dict(zip(labels, handles))
-        handle2text = dict(zip(handles, legend.texts))
-
-        lookup_artist = {}
-        lookup_handle = {}
-        for artist in legend.axes.get_children():
-            if artist.get_label() in labels:
-                handle = label2handle[artist.get_label()]
-                lookup_handle[artist] = handle
-                lookup_artist[handle] = artist
-                lookup_artist[handle2text[handle]] = artist
-
-        lookup_handle.update(zip(handles, handles))
-        lookup_handle.update(zip(legend.texts, handles))
-
-        return lookup_artist, lookup_handle
-
-    def on_pick(self, event):
-        handle = event.artist
-        if handle in self.lookup_artist:
-
-            artist = self.lookup_artist[handle]
-            artist.set_visible(not artist.get_visible())
-            self.update()
-
-    def on_click(self, event):
-        if event.button == 3:
-            visible = False
-        elif event.button == 2:
-            visible = True
-        else:
-            return
-
-        for artist in self.lookup_artist.values():
-            artist.set_visible(visible)
-        self.update()
-
-    def update(self):
-        for artist in self.lookup_artist.values():
-            handle = self.lookup_handle[artist]
-            if artist.get_visible():
-                handle.set_visible(True)
-            else:
-                handle.set_visible(False)
-        self.fig.canvas.draw()
-
-    def show(self):
-        plt.show()
-
-'''
-def legend_thickness(self, thickness=1):
-    plt.rc('legend',fontsize=20) # using a size in points
-    plt.rc('legend',fontsize='medium')
-''' 
