@@ -515,7 +515,7 @@ class ProcarParser:
     # only the first 'size' orbital
     StdOrbs =  self.orbitalName[:size-1] + self.orbitalName[-1:]
     if FoundOrbs != (StdOrbs):
-      self.log.warning(str(size)+" orbitals. (Some of) They are unknow.")
+      self.log.warning(str(size)+" orbitals. (Some of) They are unknow.") # + ' Found orbitals: ' + str(FoundOrbs) + " . Standard ones are: " + str(StdOrbs))
     self.orbitalCount = size
     self.orbitalNames = self.spd[0].split()
     self.log.debug("Anyway, I will use the following set of orbitals: "

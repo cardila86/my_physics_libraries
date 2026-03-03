@@ -165,8 +165,6 @@ def plot_bands(
             bands, kpoints, e_fermi_outcar, ___, ____, projection = r_bands._read_bands_vasp(path_read, fermi_path, spin, orbitals, atoms, klabels=True, kticks=True)
             # bands, kpoints, e_fermi_outcar, kticks, klabels, orbitals_projections
         E_zero += e_fermi_outcar
-        # ---
-        print(bands.shape)
         # --- check spinor without SOC---
         if projection is not None:
             if int(len(bands))==int(2*len(projection)):

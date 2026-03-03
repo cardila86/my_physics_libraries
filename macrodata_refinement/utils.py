@@ -284,8 +284,15 @@ class read:
             
             orbitals_projections = np.square(orbitals_projections)
             # ------------------------
-            orbitals_projections = orbitals_projections.sum(axis=2)
-            # empty list to load the selected projections
+            orbitals_projections = orbitals_projections.sum(axis=2) # bands x kpoints x all orbitals
+            # --- normalize ---
+            orbitals_projections_sum_all = orbitals_projections.sum(axis=2) # bands x kpoints
+
+            norm = np.ones(orbitals_projections.shape)
+            for i in range(orbitals_projections.shape[2]):
+                norm[:, :, i] = orbitals_projections_sum_all
+            orbitals_projections = orbitals_projections/norm
+            # ---- empty list to load the selected projections ----
             orbs_shape = orbitals_projections.shape
             orbs_shape = (orbs_shape[0], orbs_shape[1], len(orbitals))
             orbitals_projections_selected = np.empty(orbs_shape)

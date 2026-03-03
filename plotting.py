@@ -93,6 +93,7 @@ class bands:
             for i in nbands:
                 bands_new.append(bands[int(i)])
                 parameter_new.append(parameter[int(i)])
+            parameter = parameter_new
         else:
             print('ERROR: nbands must be an integer, a float or a list of integers.\n'+
                 'a '+str(type(nbands))+' type was recieved. Please check inputs.') 
@@ -162,7 +163,6 @@ class bands:
                             color_list[orbitals[i]] = color[i]
 
             color = color_list
-
 
             orbital_labels = [
             r"$s$",
@@ -248,7 +248,7 @@ class bands:
         vmax,
         cbar_bool,
         ax):
-        assert bands.shape == parameter.shape, "E and parameter must have the same shape."
+
         if type(kpoints)!=np.ndarray:
             kpoints = np.array(kpoints)
         if type(bands[0])!=np.ndarray:
@@ -279,9 +279,9 @@ class bands:
             vmin = np.min(parameter)
         if vmax is None:
             vmax = np.max(parameter)
-        
+
         norm = plt.Normalize(vmin, vmax)
-        # ------ plotting --------
+        # ------ select nbands --------
         if nbands is None:
             pass
         elif type(nbands) is int or type(nbands) is float:
@@ -293,25 +293,47 @@ class bands:
             for i in nbands:
                 bands_new.append(bands[int(i)])
                 parameter_new.append(parameter[int(i)])
+            parameter = parameter_new
         else:
             print('ERROR: nbands must be an integer, a float or a list of integers.\n'+
                   'a '+str(type(nbands))+' type was recieved. Please check inputs.') 
             exit()
-        
-        for i in range(len(bands)):
-            points = np.array([kpoints, bands[i]]).T.reshape(-1, 1, 2)
-            segments = np.concatenate([points[:-1], points[1:]], axis=1)
-            lc = LineCollection(segments, cmap=cmap, norm=norm)
+        # ------ adjust parameters --------
+        shape = parameter.shape
+        color = [np.array(i)/255 for i in color]
+        assert len(color)>=shape[2], "There must be at least as many colors as orbitals/atoms/spins. There are "+str(len(color))+" colors and "+str(shape[2])+" projections. Please check inputs." 
 
-            lc.set_array(parameter[i])
-            # lc.set_linewidth(bandwidth)
+        # creates empty array to storage the colors of each point in the plot, which will be the parameter value multiplied by the color of each projection. The shape of this array is nbandas x nkpoints x nproyecciones x 3 colores, 
+        parameter_colors = np.empty([shape[0], shape[1], shape[2], 3]) # nbandas x nkpoints x nproyecciones x 3 colores                
+        parameter_mean = np.empty([shape[0], shape[1], 1, 3]) # nbandas x nkpoints x nproyecciones x 3 colores                
+        # change shape of parameter array to be nbandas x nkpoints x nproyecciones x 3 colores, where the last dimension is just three times the original 1dimensional parameter, it is used to multiply with the RGB of colors.
+        parameter_new      = np.ones([shape[0], shape[1], shape[2], 3]) # nbandas x nkpoints x nproyecciones x 3 colores        
+        parameter_new[:,:,:,0] = parameter[:,:,:]
+        parameter_new[:,:,:,1] = parameter[:,:,:]
+        parameter_new[:,:,:,2] = parameter[:,:,:]
+        parameter = parameter_new
+        # Mix all contributions and promediates them to get a single color for each point in the plot, which is the parameter value multiplied by the color of each projection, and then averaged over the projections. The shape of this array is nbandas x nkpoints x 1 x 3 colores, where the last dimension is the RGB color of each point in the plot.
+        sum_param = 0
+        for i in range(shape[2]):
+            parameter_colors[:,:,i] = parameter[:,:,i]*color[i]
+            sum_param += np.sum(parameter_colors[:,:,i,0])
+
+        parameter_mean = np.sum(parameter_colors, axis=2)/np.sum(parameter, axis=2)  # shape nbandas x nkpoints x 3 colores, where the last dimension is the RGB color of each point in the plot.
+        # parameter_mean = np.ones(parameter_mean.shape) - parameter_mean  # Invert colors
+        # ------ plotting --------
+        for band, colors in zip(bands, parameter_mean):
+            # ------- asign colors -------
+            colors = colors.T
+            color_projection = np.column_stack([colors[0], colors[1], colors[2]])
+            # ---- create segments ----
+            points = np.array([kpoints, band]).T.reshape(-1, 1, 2)
+            segments = np.concatenate([points[:-1], points[1:]], axis=1)
+            lc = LineCollection(segments, colors=color_projection, norm=norm, linewidths=self.main_linewidth)
 
             line = ax.add_collection(lc)
             if i==0 and cbar_bool:
                 cbar = fig.colorbar(plt.cm.ScalarMappable(norm=norm, cmap=cmap),
                             ax=ax, orientation='vertical', label=None)
-                # cbar.set_ticks([])
-
         # ------------- set limits --------------
         bool_klabels = [i=='' for i in klabels]
         klabels_filtered = [i for i in klabels if i!='']
