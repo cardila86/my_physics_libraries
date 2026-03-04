@@ -292,6 +292,7 @@ class read:
             for i in range(orbitals_projections.shape[2]):
                 norm[:, :, i] = orbitals_projections_sum_all
             orbitals_projections = orbitals_projections/norm
+            orbitals_projections = np.nan_to_num(orbitals_projections) # replace nan values with 0, which can happen if there is a point with no contribution from any projection.
             # ---- empty list to load the selected projections ----
             orbs_shape = orbitals_projections.shape
             orbs_shape = (orbs_shape[0], orbs_shape[1], len(orbitals))

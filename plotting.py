@@ -300,9 +300,12 @@ class bands:
             exit()
         # ------ adjust parameters --------
         shape = parameter.shape
-        color = [np.array(i)/255 for i in color]
+        color = [1-np.array(i)/255 for i in color]
         assert len(color)>=shape[2], "There must be at least as many colors as orbitals/atoms/spins. There are "+str(len(color))+" colors and "+str(shape[2])+" projections. Please check inputs." 
 
+        # controls alpha value of plot
+        parameter_alpha = np.sum(parameter, axis=2)
+        parameter_alpha = np.round(parameter_alpha, decimals=2)
         # creates empty array to storage the colors of each point in the plot, which will be the parameter value multiplied by the color of each projection. The shape of this array is nbandas x nkpoints x nproyecciones x 3 colores, 
         parameter_colors = np.empty([shape[0], shape[1], shape[2], 3]) # nbandas x nkpoints x nproyecciones x 3 colores                
         parameter_mean = np.empty([shape[0], shape[1], 1, 3]) # nbandas x nkpoints x nproyecciones x 3 colores                
@@ -317,23 +320,25 @@ class bands:
         for i in range(shape[2]):
             parameter_colors[:,:,i] = parameter[:,:,i]*color[i]
             sum_param += np.sum(parameter_colors[:,:,i,0])
-
         parameter_mean = np.sum(parameter_colors, axis=2)/np.sum(parameter, axis=2)  # shape nbandas x nkpoints x 3 colores, where the last dimension is the RGB color of each point in the plot.
-        # parameter_mean = np.ones(parameter_mean.shape) - parameter_mean  # Invert colors
+        parameter_mean = np.nan_to_num(parameter_mean) # replace nan values with 0, which can happen if there is a point with no contribution from any projection.
+        parameter_mean = np.ones(parameter_mean.shape) - parameter_mean  # Invert colors
         # ------ plotting --------
-        for band, colors in zip(bands, parameter_mean):
+        for band, colors, alpha in zip(bands, parameter_mean, parameter_alpha):
             # ------- asign colors -------
             colors = colors.T
             color_projection = np.column_stack([colors[0], colors[1], colors[2]])
             # ---- create segments ----
             points = np.array([kpoints, band]).T.reshape(-1, 1, 2)
             segments = np.concatenate([points[:-1], points[1:]], axis=1)
-            lc = LineCollection(segments, colors=color_projection, norm=norm, linewidths=self.main_linewidth)
+            lc = LineCollection(segments, colors=color_projection, norm=norm, linewidths=self.main_linewidth, alpha=alpha)
 
             line = ax.add_collection(lc)
             if i==0 and cbar_bool:
                 cbar = fig.colorbar(plt.cm.ScalarMappable(norm=norm, cmap=cmap),
                             ax=ax, orientation='vertical', label=None)
+        for band in bands:
+                ax.plot(kpoints, band, c=self.background_linecolor, linewidth=self.main_linewidth/5, linestyle=self.main_linestyle, alpha=0.6)
         # ------------- set limits --------------
         bool_klabels = [i=='' for i in klabels]
         klabels_filtered = [i for i in klabels if i!='']
