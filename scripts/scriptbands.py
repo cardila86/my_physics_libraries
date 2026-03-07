@@ -165,6 +165,7 @@ def plot_bands(
             bands, kpoints, e_fermi_outcar, ___, ____, projection = r_bands._read_bands_vasp(path_read, fermi_path, spin, orbitals, atoms, klabels=True, kticks=True)
             # bands, kpoints, e_fermi_outcar, kticks, klabels, orbitals_projections
         E_zero += e_fermi_outcar
+        
         # --- check spinor without SOC---
         if projection is not None:
             if int(len(bands))==int(2*len(projection)):
@@ -230,6 +231,11 @@ def plot_bands(
     ax.set_ylabel(r'$E-E_{F} [eV]$')
     if E_limit is not None:
         ax.set_ylim(E_limit)
+        for l in ax.get_lines():
+            line = l.get_ydata()
+            if len(line)==len(bands[0]):
+                if np.max(line) < E_limit[0] or np.min(line) > E_limit[1]:
+                    l.remove()
     if legend:
         lgnd = ax.legend(scatterpoints=1, fontsize=10, loc='upper right')
         # make all label markers the same size even when plotting different sizes
