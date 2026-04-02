@@ -174,6 +174,20 @@ def plot_bands(
                 projection_new[0:shape[0]][:][:] = projection
                 projection_new[shape[0]:][:][:] = projection
                 projection = projection_new
+        # --- filter data by E_limit -------
+        if E_limit is not None:
+            new_bands = []
+            new_projection = []
+            # if projection.shape == bands.shape:
+            for i in range(len(bands)):
+                band = bands[i]
+                if max(band)-E_zero < E_limit[0] or min(band)-E_zero > E_limit[1]:
+                    pass
+                else:
+                    new_bands.append(band)
+                    new_projection.append(projection[i])
+            bands = np.array(new_bands)
+            projection = np.array(new_projection)   
         # ------------ plotting ------------
         if mode == 'plain':
             fig, ax = b_plotter.plot_bands_processed(kpoints,
@@ -231,11 +245,14 @@ def plot_bands(
     ax.set_ylabel(r'$E-E_{F} [eV]$')
     if E_limit is not None:
         ax.set_ylim(E_limit)
-        for l in ax.get_lines():
-            line = l.get_ydata()
-            if len(line)==len(bands[0]):
-                if np.max(line) < E_limit[0] or np.min(line) > E_limit[1]:
-                    l.remove()
+        try:
+            for l in ax.get_lines():
+                line = l.get_ydata()
+                if len(line)==len(bands[0]):
+                    if np.max(line) < E_limit[0] or np.min(line) > E_limit[1]:
+                        l.remove()
+        except:
+            pass
     if legend:
         lgnd = ax.legend(scatterpoints=1, fontsize=10, loc='upper right')
         # make all label markers the same size even when plotting different sizes
